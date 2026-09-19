@@ -165,7 +165,7 @@ class QuantexaChartManager {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (ctx) => `Daily Return: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`
+              label: (ctx) => `Daily Return: ${ctx.parsed.y != null && !isNaN(ctx.parsed.y) ? (ctx.parsed.y >= 0 ? '+' : '') + Number(ctx.parsed.y).toFixed(2) + '%' : '--'}`
             }
           }
         },
@@ -227,7 +227,7 @@ class QuantexaChartManager {
           legend: { display: true, position: 'top' },
           tooltip: {
             callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.y).toFixed(2)}%`
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y != null && !isNaN(ctx.parsed.y) ? Number(ctx.parsed.y).toFixed(2) + '%' : '--'}`
             }
           }
         },
@@ -286,7 +286,7 @@ class QuantexaChartManager {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (ctx) => `Drawdown: ${Number(ctx.parsed.y).toFixed(2)}%`
+              label: (ctx) => `Drawdown: ${ctx.parsed.y != null && !isNaN(ctx.parsed.y) ? Number(ctx.parsed.y).toFixed(2) + '%' : '--'}`
             }
           }
         },
@@ -348,7 +348,7 @@ class QuantexaChartManager {
           legend: { display: true, position: 'top' },
           tooltip: {
             callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.y).toFixed(3)}`
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y != null && !isNaN(ctx.parsed.y) ? Number(ctx.parsed.y).toFixed(3) : '--'}`
             }
           }
         },
@@ -473,7 +473,10 @@ class QuantexaChartManager {
           },
           tooltip: {
             callbacks: {
-              label: (ctx) => ` ${ctx.label}: ${ctx.raw} bars (${((ctx.raw / counts.reduce((a,b)=>a+b,0)) * 100).toFixed(1)}%)`
+              label: (ctx) => {
+                const total = counts.reduce((a, b) => a + b, 0) || 1;
+                return ` ${ctx.label}: ${ctx.raw} bars (${((ctx.raw / total) * 100).toFixed(1)}%)`;
+              }
             }
           }
         },

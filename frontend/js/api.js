@@ -152,6 +152,7 @@ class QuantexaApiClient {
     return this._request(`/market/${asset}/strategy/signals?refresh=${refresh}`, {
       method: 'POST',
       body: {
+        strategy: strategyName,
         strategy_name: strategyName,
         parameters: parameters || {}
       },

@@ -319,18 +319,21 @@ class QuantexaApp {
       document.getElementById('kpi-low').innerText = this._formatCurrency(latest.low);
       document.getElementById('kpi-close').innerText = this._formatCurrency(latest.close);
       document.getElementById('kpi-volume').innerText = this._formatVolume(latest.volume);
-      document.getElementById('kpi-sharpe').innerText = risk.annualized_sharpe_ratio !== null ? risk.annualized_sharpe_ratio.toFixed(2) : 'N/A';
-      document.getElementById('kpi-drawdown').innerText = risk.maximum_drawdown !== null ? `${(risk.maximum_drawdown * 100).toFixed(2)}%` : 'N/A';
+      
+      const sharpe = risk?.summary?.sharpe_ratio ?? risk?.annualized_sharpe_ratio ?? null;
+      const mdd = risk?.summary?.maximum_drawdown_pct ?? (risk?.maximum_drawdown != null ? risk.maximum_drawdown * 100 : null);
+      document.getElementById('kpi-sharpe').innerText = sharpe !== null && sharpe !== undefined ? Number(sharpe).toFixed(2) : 'N/A';
+      document.getElementById('kpi-drawdown').innerText = mdd !== null && mdd !== undefined ? `${Number(mdd).toFixed(2)}%` : 'N/A';
       
       // Current Regime
-      const primaryRegime = regimesSummary.summary && regimesSummary.summary[0] ? regimesSummary.summary[0].regime : 'UNKNOWN';
+      const primaryRegime = regimesSummary?.summary && regimesSummary.summary[0] ? regimesSummary.summary[0].regime : (regimesSummary?.regimes && regimesSummary.regimes[0] ? regimesSummary.regimes[0].regime : 'UNKNOWN');
       const regimeEl = document.getElementById('kpi-regime');
       regimeEl.innerText = primaryRegime;
       regimeEl.className = `text-sm font-bold font-mono px-2 py-0.5 rounded ${this._getRegimeBadgeClass(primaryRegime)}`;
 
       // Data Hygiene Card
-      document.getElementById('hygiene-total-records').innerText = `${summary.total_records} Bars`;
-      document.getElementById('hygiene-valid-ohlc').innerText = `${summary.valid_ohlc_count} Valid`;
+      document.getElementById('hygiene-total-records').innerText = `${summary.total_records || 0} Bars`;
+      document.getElementById('hygiene-valid-ohlc').innerText = `${summary.valid_ohlc_count || 0} Valid`;
       document.getElementById('hygiene-source').innerText = summary.source || 'Twelve Data';
 
       this._hideSkeleton('overview-kpi-container');
@@ -346,10 +349,14 @@ class QuantexaApp {
         const data = await this.api.getLatest(id);
         const priceEl = document.getElementById(`ticker-price-${id}`);
         const changeEl = document.getElementById(`ticker-change-${id}`);
-        if (priceEl) priceEl.innerText = this._formatCurrency(data.price);
+        if (priceEl && data.price !== null && data.price !== undefined) {
+          priceEl.innerText = this._formatCurrency(data.price);
+        }
         if (changeEl && data.change !== null && data.change !== undefined) {
           const isPos = data.change >= 0;
-          changeEl.innerText = `${isPos ? '+' : ''}${data.change_percent || '--'}`;
+          const rawPct = (data.change_percent || '').toString().trim();
+          const cleanPct = rawPct.startsWith('+') || rawPct.startsWith('-') ? rawPct : `${isPos ? '+' : ''}${rawPct}`;
+          changeEl.innerText = cleanPct || '--%';
           changeEl.className = `text-[11px] font-mono ${isPos ? 'text-emerald-400' : 'text-rose-400'}`;
         }
       } catch (e) {
@@ -468,22 +475,29 @@ class QuantexaApp {
 
       const points = riskMetrics.data || [];
       const labels = points.map(p => p.timestamp.split('T')[0]);
-      const returns = points.map(p => p.daily_return !== null ? p.daily_return * 100 : 0);
-      const volatility = points.map(p => p.rolling_volatility !== null ? p.rolling_volatility * 100 : null);
+      const returns = points.map(p => (p.return_pct !== null && p.return_pct !== undefined) ? Number(p.return_pct) : 0);
+      const volatility = points.map(p => (p.volatility !== null && p.volatility !== undefined) ? Number(p.volatility) : null);
 
       this.charts.renderReturnsChart('returns-bar-chart', { labels, returns });
       this.charts.renderVolatilityChart('volatility-line-chart', { labels, volatility });
 
       // Drawdown Chart
-      const ddLabels = (riskAnalysis.drawdown_series || []).map(p => p.timestamp.split('T')[0]);
-      const ddValues = (riskAnalysis.drawdown_series || []).map(p => p.drawdown_pct !== null ? p.drawdown_pct : 0);
+      const ddSeries = riskAnalysis.drawdown_series || [];
+      const ddLabels = ddSeries.map(p => p.timestamp.split('T')[0]);
+      const ddValues = ddSeries.map(p => (p.drawdown_pct !== null && p.drawdown_pct !== undefined) ? Number(p.drawdown_pct) : 0);
       this.charts.renderDrawdownChart('risk-drawdown-chart', { labels: ddLabels, drawdowns: ddValues });
 
       // KPI metrics
-      document.getElementById('risk-sharpe-val').innerText = riskAnalysis.annualized_sharpe_ratio !== null ? riskAnalysis.annualized_sharpe_ratio.toFixed(2) : 'N/A';
-      document.getElementById('risk-max-dd-val').innerText = riskAnalysis.maximum_drawdown !== null ? `${(riskAnalysis.maximum_drawdown * 100).toFixed(2)}%` : 'N/A';
-      document.getElementById('risk-trough-date').innerText = riskAnalysis.trough_date || 'N/A';
-      document.getElementById('risk-peak-date').innerText = riskAnalysis.peak_date || 'N/A';
+      const sharpeVal = riskAnalysis.summary?.sharpe_ratio ?? riskAnalysis.annualized_sharpe_ratio ?? null;
+      const mddVal = riskAnalysis.summary?.maximum_drawdown_pct ?? (riskAnalysis.maximum_drawdown != null ? riskAnalysis.maximum_drawdown * 100 : null);
+      document.getElementById('risk-sharpe-val').innerText = sharpeVal !== null && sharpeVal !== undefined ? Number(sharpeVal).toFixed(2) : 'N/A';
+      document.getElementById('risk-max-dd-val').innerText = mddVal !== null && mddVal !== undefined ? `${Number(mddVal).toFixed(2)}%` : 'N/A';
+      
+      const troughDate = riskAnalysis.summary?.maximum_drawdown_timestamp || riskAnalysis.trough_date || (ddSeries.length > 0 ? ddSeries[ddSeries.length - 1].timestamp : 'N/A');
+      document.getElementById('risk-trough-date').innerText = troughDate ? troughDate.split('T')[0] : 'N/A';
+      
+      const peakDate = riskAnalysis.summary?.start_date || riskAnalysis.peak_date || (ddSeries.length > 0 ? ddSeries[0].timestamp : 'N/A');
+      document.getElementById('risk-peak-date').innerText = peakDate ? peakDate.split('T')[0] : 'N/A';
     } catch (err) {
       console.error("Risk metrics error:", err);
       this._showError('risk-error-container', err.message);
@@ -506,11 +520,23 @@ class QuantexaApp {
           <tr class="hover:bg-slate-800/30">
             <td class="py-3 px-4 font-semibold text-slate-200">${ASSETS[a1].symbol}</td>
             ${assets.map(a2 => {
-              const val = matrix[a1] && matrix[a1][a2] !== undefined ? matrix[a1][a2] : 0;
-              const bg = this._getCorrelationCellColor(val);
+              const sym1 = ASSETS[a1].symbol;
+              const sym2 = ASSETS[a2].symbol;
+              let val = null;
+              if (matrix[sym1] && matrix[sym1][sym2] !== undefined) {
+                val = matrix[sym1][sym2];
+              } else if (matrix[a1] && matrix[a1][a2] !== undefined) {
+                val = matrix[a1][a2];
+              } else if (a1 === a2) {
+                val = 1.0;
+              } else {
+                val = 0.0;
+              }
+              const numVal = val !== null && val !== undefined ? Number(val) : 0.0;
+              const bg = this._getCorrelationCellColor(numVal);
               return `
                 <td class="py-3 px-4 text-center font-mono font-bold" style="background-color: ${bg}; color: #ffffff;">
-                  ${val.toFixed(3)}
+                  ${numVal.toFixed(3)}
                 </td>
               `;
             }).join('')}
@@ -524,8 +550,9 @@ class QuantexaApp {
       const [asset1, asset2] = pair.split(':');
 
       const rolling = await this.api.getRollingCorrelation(asset1, asset2, windowVal, refresh);
-      const rollLabels = (rolling.series || []).map(p => p.timestamp.split('T')[0]);
-      const rollValues = (rolling.series || []).map(p => p.correlation);
+      const pairSeries = (rolling.pairs && rolling.pairs.length > 0 && rolling.pairs[0].series) ? rolling.pairs[0].series : (rolling.series || []);
+      const rollLabels = pairSeries.map(p => p.timestamp.split('T')[0]);
+      const rollValues = pairSeries.map(p => p.correlation);
 
       this.charts.renderRollingCorrelationChart('rolling-corr-chart', {
         labels: rollLabels,
@@ -612,9 +639,11 @@ class QuantexaApp {
     else if (stratName === 'mean_reversion') params = { period: 20, num_std: 2.0 };
 
     const payload = {
+      strategy: stratName,
       strategy_name: stratName,
       initial_capital: capital,
       transaction_cost_rate: fee,
+      allocation: allocation,
       allocation_fraction: allocation,
       parameters: params
     };
@@ -626,18 +655,25 @@ class QuantexaApp {
       // Update KPI Cards
       document.getElementById('bt-final-val').innerText = this._formatCurrency(result.final_portfolio_value);
       
+      const totalRet = result.performance?.total_return_pct ?? (result.total_return_pct != null ? result.total_return_pct : (result.total_return != null ? result.total_return * 100 : 0));
+      const isPos = totalRet >= 0;
       const retEl = document.getElementById('bt-total-ret');
-      const isPos = result.total_return >= 0;
-      retEl.innerText = `${isPos ? '+' : ''}${result.total_return_pct.toFixed(2)}%`;
+      retEl.innerText = `${isPos ? '+' : ''}${Number(totalRet).toFixed(2)}%`;
       retEl.className = `text-xl font-bold font-mono ${isPos ? 'text-emerald-400' : 'text-rose-400'}`;
 
-      document.getElementById('bt-max-dd').innerText = `${(result.maximum_drawdown * 100).toFixed(2)}%`;
-      document.getElementById('bt-trades-count').innerText = `${result.number_of_trades} Trades`;
-      document.getElementById('bt-benchmark-ret').innerText = `${result.benchmark_return_pct >= 0 ? '+' : ''}${result.benchmark_return_pct.toFixed(2)}%`;
+      const maxDd = result.performance?.maximum_drawdown_pct ?? (result.maximum_drawdown != null ? result.maximum_drawdown * 100 : (result.max_drawdown != null ? result.max_drawdown * 100 : 0));
+      document.getElementById('bt-max-dd').innerText = `${Number(maxDd).toFixed(2)}%`;
+
+      const tradesCount = result.total_trades ?? result.number_of_trades ?? 0;
+      document.getElementById('bt-trades-count').innerText = `${tradesCount} Trades`;
+
+      const benchRet = result.benchmark?.total_return_pct ?? (result.benchmark_return_pct != null ? result.benchmark_return_pct : 0);
+      document.getElementById('bt-benchmark-ret').innerText = `${benchRet >= 0 ? '+' : ''}${Number(benchRet).toFixed(2)}%`;
       
+      const excessRet = totalRet - benchRet;
       const excessEl = document.getElementById('bt-excess-ret');
-      const excessPos = result.excess_return >= 0;
-      excessEl.innerText = `${excessPos ? '+' : ''}${result.excess_return_pct.toFixed(2)}%`;
+      const excessPos = excessRet >= 0;
+      excessEl.innerText = `${excessPos ? '+' : ''}${Number(excessRet).toFixed(2)}%`;
       excessEl.className = `text-xl font-bold font-mono ${excessPos ? 'text-emerald-400' : 'text-rose-400'}`;
 
       // Render Equity Curve Chart
@@ -650,7 +686,7 @@ class QuantexaApp {
         labels,
         strategyValues,
         benchmarkValues,
-        strategyName: result.strategy_name.toUpperCase()
+        strategyName: (result.strategy || result.strategy_name || stratName).toUpperCase()
       });
 
       // Render Trade History Table
@@ -665,7 +701,7 @@ class QuantexaApp {
               <td class="py-2.5 px-4 font-mono text-slate-300">${t.timestamp.split('T')[0]}</td>
               <td class="py-2.5 px-4 font-bold font-mono ${t.trade_type === 'BUY' ? 'text-emerald-400' : 'text-rose-400'}">${t.trade_type}</td>
               <td class="py-2.5 px-4 text-right font-mono text-slate-200">${this._formatCurrency(t.price)}</td>
-              <td class="py-2.5 px-4 text-right font-mono text-slate-300">${Number(t.shares).toFixed(4)}</td>
+              <td class="py-2.5 px-4 text-right font-mono text-slate-300">${Number(t.shares || 0).toFixed(4)}</td>
               <td class="py-2.5 px-4 text-right font-mono text-slate-400">${this._formatCurrency(t.cost)}</td>
               <td class="py-2.5 px-4 text-right font-mono text-slate-200">${this._formatCurrency(t.value)}</td>
               <td class="py-2.5 px-4 text-right font-mono font-semibold ${t.realized_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
@@ -689,11 +725,14 @@ class QuantexaApp {
     const payload = {
       initial_capital: 100000.0,
       transaction_cost_rate: 0.001,
+      allocation: 1.0,
       allocation_fraction: 1.0,
-      sma_params: { fast_period: 10, slow_period: 30 },
-      ema_params: { fast_period: 12, slow_period: 26 },
-      mom_params: { lookback_period: 10, threshold: 0.0 },
-      mr_params: { period: 20, num_std: 2.0 }
+      strategy_configs: {
+        sma_crossover: { fast_period: 10, slow_period: 30 },
+        ema_trend: { fast_period: 12, slow_period: 26 },
+        momentum: { lookback_period: 10, threshold: 0.0 },
+        mean_reversion: { period: 20, num_std: 2.0 }
+      }
     };
 
     try {
@@ -703,52 +742,65 @@ class QuantexaApp {
       // Render Comparison Cards
       const container = document.getElementById('comparison-cards-grid');
       if (container) {
-        container.innerHTML = strats.map(s => `
+        container.innerHTML = strats.map(s => {
+          const ret = s.total_return != null ? s.total_return : (s.total_return_pct != null ? s.total_return_pct : 0);
+          const mdd = s.maximum_drawdown != null ? s.maximum_drawdown : (s.max_drawdown != null ? s.max_drawdown : 0);
+          const excess = s.excess_return_vs_benchmark != null ? s.excess_return_vs_benchmark : (s.excess_return != null ? s.excess_return : 0);
+          const stratName = s.strategy || s.display_name || 'Strategy';
+          const trades = s.number_of_trades ?? s.total_trades ?? 0;
+          return `
           <div class="glass-card rounded-2xl p-5 border border-slate-700/40 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between text-xs text-slate-400">
-                <span class="font-bold text-slate-200 text-sm">${s.display_name}</span>
-                <span class="font-mono px-2 py-0.5 rounded bg-slate-800/80 text-slate-400">${s.number_of_trades} trades</span>
+                <span class="font-bold text-slate-200 text-sm">${stratName.toUpperCase()}</span>
+                <span class="font-mono px-2 py-0.5 rounded bg-slate-800/80 text-slate-400">${trades} trades</span>
               </div>
               <div class="my-3">
                 <div class="text-2xl font-black font-mono text-white">${this._formatCurrency(s.final_portfolio_value)}</div>
-                <div class="text-xs font-mono font-semibold ${s.total_return >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-                  Return: ${s.total_return >= 0 ? '+' : ''}${s.total_return_pct.toFixed(2)}%
+                <div class="text-xs font-mono font-semibold ${ret >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                  Return: ${ret >= 0 ? '+' : ''}${Number(ret).toFixed(2)}%
                 </div>
               </div>
             </div>
             <div class="pt-3 border-t border-slate-800 text-xs space-y-1 font-mono text-slate-400">
               <div class="flex justify-between">
                 <span>Max Drawdown:</span>
-                <span class="text-rose-400">${(s.maximum_drawdown * 100).toFixed(2)}%</span>
+                <span class="text-rose-400">${Number(mdd).toFixed(2)}%</span>
               </div>
               <div class="flex justify-between">
                 <span>Excess vs B&H:</span>
-                <span class="${s.excess_return >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${s.excess_return >= 0 ? '+' : ''}${s.excess_return_pct.toFixed(2)}%</span>
+                <span class="${excess >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${excess >= 0 ? '+' : ''}${Number(excess).toFixed(2)}%</span>
               </div>
             </div>
           </div>
-        `).join('');
+        `}).join('');
       }
 
       // Comparison Table
+      const benchRet = comp.benchmark?.total_return_pct ?? comp.benchmark_return_pct ?? 0;
       const tbody = document.getElementById('comparison-tbody');
       if (tbody) {
-        tbody.innerHTML = strats.map(s => `
+        tbody.innerHTML = strats.map(s => {
+          const ret = s.total_return != null ? s.total_return : (s.total_return_pct != null ? s.total_return_pct : 0);
+          const mdd = s.maximum_drawdown != null ? s.maximum_drawdown : (s.max_drawdown != null ? s.max_drawdown : 0);
+          const excess = s.excess_return_vs_benchmark != null ? s.excess_return_vs_benchmark : (s.excess_return != null ? s.excess_return : 0);
+          const stratName = s.strategy || s.display_name || 'Strategy';
+          const trades = s.number_of_trades ?? s.total_trades ?? 0;
+          return `
           <tr class="hover:bg-slate-800/40">
-            <td class="py-3 px-4 font-bold text-slate-200">${s.display_name}</td>
+            <td class="py-3 px-4 font-bold text-slate-200">${stratName.toUpperCase()}</td>
             <td class="py-3 px-4 text-right font-mono font-bold text-white">${this._formatCurrency(s.final_portfolio_value)}</td>
-            <td class="py-3 px-4 text-right font-mono font-bold ${s.total_return >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-              ${s.total_return >= 0 ? '+' : ''}${s.total_return_pct.toFixed(2)}%
+            <td class="py-3 px-4 text-right font-mono font-bold ${ret >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+              ${ret >= 0 ? '+' : ''}${Number(ret).toFixed(2)}%
             </td>
-            <td class="py-3 px-4 text-right font-mono text-slate-300">${s.number_of_trades}</td>
-            <td class="py-3 px-4 text-right font-mono text-rose-400">${(s.maximum_drawdown * 100).toFixed(2)}%</td>
-            <td class="py-3 px-4 text-right font-mono text-slate-400">${comp.benchmark_return_pct.toFixed(2)}%</td>
-            <td class="py-3 px-4 text-right font-mono font-semibold ${s.excess_return >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-              ${s.excess_return >= 0 ? '+' : ''}${s.excess_return_pct.toFixed(2)}%
+            <td class="py-3 px-4 text-right font-mono text-slate-300">${trades}</td>
+            <td class="py-3 px-4 text-right font-mono text-rose-400">${Number(mdd).toFixed(2)}%</td>
+            <td class="py-3 px-4 text-right font-mono text-slate-400">${Number(benchRet).toFixed(2)}%</td>
+            <td class="py-3 px-4 text-right font-mono font-semibold ${excess >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+              ${excess >= 0 ? '+' : ''}${Number(excess).toFixed(2)}%
             </td>
           </tr>
-        `).join('');
+        `}).join('');
       }
     } catch (err) {
       console.error("Comparison error:", err);
@@ -765,45 +817,53 @@ class QuantexaApp {
 
     let ranges = {};
     if (strat === 'sma_crossover') {
-      ranges = { fast_period: [5, 10, 15], slow_period: [20, 30] };
+      ranges = { short_period: [5, 10, 15], long_period: [20, 30] };
     } else if (strat === 'ema_trend') {
-      ranges = { fast_period: [8, 12], slow_period: [20, 26] };
+      ranges = { ema_period: [8, 12, 20, 26] };
     } else if (strat === 'momentum') {
-      ranges = { lookback_period: [5, 10, 15], threshold: [0.0, 0.01] };
+      ranges = { lookback: [5, 10, 15, 20] };
     } else if (strat === 'mean_reversion') {
-      ranges = { period: [15, 20], num_std: [1.5, 2.0] };
+      ranges = { lookback: [15, 20], entry_threshold: [1.5, 2.0] };
     }
 
     const payload = {
+      strategy: strat,
       strategy_name: strat,
+      parameter_grid: ranges,
+      parameter_ranges: ranges,
       initial_capital: 100000.0,
       transaction_cost_rate: 0.001,
-      allocation_fraction: 1.0,
-      parameter_ranges: ranges
+      allocation: 1.0,
+      allocation_fraction: 1.0
     };
 
     try {
       const resp = await this.api.runRobustness(asset, payload, refresh);
       const results = resp.results || [];
 
-      document.getElementById('robustness-total-combos').innerText = `${resp.total_combinations} Combinations Tested`;
+      document.getElementById('robustness-total-combos').innerText = `${resp.total_combinations || results.length} Combinations Tested`;
 
       const tbody = document.getElementById('robustness-tbody');
       if (tbody) {
-        tbody.innerHTML = results.map(r => `
+        tbody.innerHTML = results.map(r => {
+          const ret = r.total_return != null ? r.total_return : (r.total_return_pct != null ? r.total_return_pct : 0);
+          const mdd = r.maximum_drawdown != null ? r.maximum_drawdown : (r.max_drawdown != null ? r.max_drawdown : 0);
+          const excess = r.excess_return_vs_benchmark != null ? r.excess_return_vs_benchmark : (r.excess_return != null ? r.excess_return : 0);
+          const trades = r.number_of_trades ?? r.total_trades ?? 0;
+          return `
           <tr class="hover:bg-slate-800/40">
             <td class="py-2.5 px-4 font-mono text-xs text-indigo-300">${JSON.stringify(r.parameters)}</td>
             <td class="py-2.5 px-4 text-right font-mono text-slate-200">${this._formatCurrency(r.final_portfolio_value)}</td>
-            <td class="py-2.5 px-4 text-right font-mono font-bold ${r.total_return >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-              ${r.total_return >= 0 ? '+' : ''}${r.total_return_pct.toFixed(2)}%
+            <td class="py-2.5 px-4 text-right font-mono font-bold ${ret >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+              ${ret >= 0 ? '+' : ''}${Number(ret).toFixed(2)}%
             </td>
-            <td class="py-2.5 px-4 text-right font-mono text-slate-300">${r.number_of_trades}</td>
-            <td class="py-2.5 px-4 text-right font-mono text-rose-400">${(r.maximum_drawdown * 100).toFixed(2)}%</td>
-            <td class="py-2.5 px-4 text-right font-mono font-semibold ${r.excess_return >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-              ${r.excess_return >= 0 ? '+' : ''}${r.excess_return_pct.toFixed(2)}%
+            <td class="py-2.5 px-4 text-right font-mono text-slate-300">${trades}</td>
+            <td class="py-2.5 px-4 text-right font-mono text-rose-400">${Number(mdd).toFixed(2)}%</td>
+            <td class="py-2.5 px-4 text-right font-mono font-semibold ${excess >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+              ${excess >= 0 ? '+' : ''}${Number(excess).toFixed(2)}%
             </td>
           </tr>
-        `).join('');
+        `}).join('');
       }
     } catch (err) {
       console.error("Robustness error:", err);
@@ -824,7 +884,7 @@ class QuantexaApp {
       ]);
 
       // Summary Donut
-      const items = summary.summary || [];
+      const items = summary.summary || summary.regimes || [];
       const labels = items.map(i => i.regime);
       const counts = items.map(i => i.count);
       this.charts.renderRegimeDistributionChart('regime-donut-chart', { labels, counts });
@@ -832,34 +892,39 @@ class QuantexaApp {
       // Regime Summary Cards
       const container = document.getElementById('regime-summary-cards');
       if (container) {
-        container.innerHTML = items.map(item => `
+        container.innerHTML = items.map(item => {
+          const pct = item.percentage != null ? item.percentage : 0;
+          return `
           <div class="glass-card rounded-2xl p-4 border border-slate-700/40">
             <span class="text-[10px] font-mono px-2 py-0.5 rounded ${this._getRegimeBadgeClass(item.regime)}">${item.regime}</span>
             <div class="mt-3 flex items-baseline justify-between">
               <div class="text-2xl font-bold font-mono text-white">${item.count} <span class="text-xs font-normal text-slate-400">bars</span></div>
-              <div class="text-sm font-mono text-slate-300 font-semibold">${item.percentage.toFixed(1)}%</div>
+              <div class="text-sm font-mono text-slate-300 font-semibold">${Number(pct).toFixed(1)}%</div>
             </div>
             <div class="mt-2 text-[10px] text-slate-500 font-mono">Date Range: ${item.start_date || '--'} to ${item.end_date || '--'}</div>
           </div>
-        `).join('');
+        `}).join('');
       }
 
       // Performance by Regime Table
       const perfs = performance.performances || [];
       const perfTbody = document.getElementById('regime-performance-tbody');
       if (perfTbody) {
-        perfTbody.innerHTML = perfs.map(p => `
+        perfTbody.innerHTML = perfs.map(p => {
+          const ret = p.total_return != null ? p.total_return : (p.total_return_pct != null ? p.total_return_pct : 0);
+          const mdd = p.maximum_drawdown != null ? p.maximum_drawdown : (p.max_drawdown != null ? p.max_drawdown : 0);
+          return `
           <tr class="hover:bg-slate-800/40">
-            <td class="py-2.5 px-4 font-semibold text-slate-200">${p.strategy.toUpperCase()}</td>
+            <td class="py-2.5 px-4 font-semibold text-slate-200">${(p.strategy || '').toUpperCase()}</td>
             <td class="py-2.5 px-4 font-mono text-xs"><span class="px-2 py-0.5 rounded ${this._getRegimeBadgeClass(p.regime)}">${p.regime}</span></td>
             <td class="py-2.5 px-4 text-right font-mono text-slate-300">${p.observations}</td>
             <td class="py-2.5 px-4 text-right font-mono text-slate-300">${p.trades}</td>
-            <td class="py-2.5 px-4 text-right font-mono font-bold ${p.total_return >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
-              ${p.total_return >= 0 ? '+' : ''}${p.total_return_pct.toFixed(2)}%
+            <td class="py-2.5 px-4 text-right font-mono font-bold ${ret >= 0 ? 'text-emerald-400' : 'text-rose-400'}">
+              ${ret >= 0 ? '+' : ''}${Number(ret).toFixed(2)}%
             </td>
-            <td class="py-2.5 px-4 text-right font-mono text-rose-400">${(p.maximum_drawdown * 100).toFixed(2)}%</td>
+            <td class="py-2.5 px-4 text-right font-mono text-rose-400">${Number(mdd).toFixed(2)}%</td>
           </tr>
-        `).join('');
+        `}).join('');
       }
     } catch (err) {
       console.error("Regimes error:", err);
@@ -913,6 +978,18 @@ class QuantexaApp {
   _formatVolume(val) {
     if (val === null || val === undefined || isNaN(val) || val === 0) return 'N/A (Spot)';
     return Number(val).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+
+  _formatNumber(val, decimals = 2, fallback = '--') {
+    if (val === null || val === undefined || isNaN(Number(val))) return fallback;
+    return Number(val).toFixed(decimals);
+  }
+
+  _formatPct(val, decimals = 2, fallback = '--', showSign = false) {
+    if (val === null || val === undefined || isNaN(Number(val))) return fallback;
+    const n = Number(val);
+    const sign = (showSign && n >= 0) ? '+' : '';
+    return `${sign}${n.toFixed(decimals)}%`;
   }
 
   _showSkeleton(containerId) {
