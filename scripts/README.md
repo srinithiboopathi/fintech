@@ -25,9 +25,10 @@ The `scripts/` directory is designed for cross-cutting, repository-level utiliti
 > These scripts rely directly on internal backend packages (`app.services`, `app.models`, `app.config`). Keeping them inside `backend/tests/` maintains modularity and ensures proper test discovery with `pytest`.
 
 ### Key Verification Scripts in `backend/tests/`:
-- `pytest backend/tests` — Comprehensive automated test suite (65 tests covering Steps 1–6).
+- `pytest backend/tests` — Comprehensive automated test suite (84 tests covering Steps 1–7).
 - `python backend/tests/verify_step2_live.py` — Live validation of Twelve Data ingestion, fallback, and caching.
 - `python backend/tests/verify_step3_live.py` — Live validation of data cleaning and quality summaries.
 - `python backend/tests/verify_step4_live.py` — Live validation of SMA and EMA quantitative indicators.
 - `python backend/tests/verify_step5_live.py` — Live validation of percentage returns and rolling volatility.
 - `python backend/tests/verify_step6_live.py` — Live validation of Sharpe ratio and maximum drawdown.
+- `python backend/tests/verify_step7_live.py` — Live validation of multi-asset correlation matrix and rolling correlation.

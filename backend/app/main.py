@@ -79,7 +79,10 @@ def create_app() -> FastAPI:
                 "clean_data": "/market/{asset}/data",
                 "clean_summary": "/market/{asset}/data/summary",
                 "indicators": "/market/{asset}/indicators",
-                "risk_metrics": "/market/{asset}/risk-metrics"
+                "risk_metrics": "/market/{asset}/risk-metrics",
+                "risk_analysis": "/market/{asset}/risk-analysis",
+                "correlation": "/market/correlation",
+                "rolling_correlation": "/market/correlation/rolling"
             },
 
 

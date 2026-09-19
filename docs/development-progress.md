@@ -15,7 +15,9 @@ This document tracks the phased implementation milestones of the **Quantexa** qu
 | **Step 5** | Returns & Volatility Analysis Engine | **COMPLETE** | 53 tests passed (Percentage daily returns, rolling sample volatility ddof=1) |
 | **Step 5.5**| Professional Project Structure Reorganization | **COMPLETE** | Full repository cleanup, architectural documentation, agent guidelines |
 | **Step 6** | Risk Analysis (Sharpe Ratio & Maximum Drawdown) | **COMPLETE** | 65 tests passed (12 Step 6 tests: Annualized Sharpe, Running Peak Drawdown, live verification) |
-| **Step 7+**| Strategy Backtesting & Execution Engine | **NOT STARTED**| Future roadmap |
+| **Step 7** | Correlation & Rolling Correlation Analysis | **COMPLETE** | 84 tests passed (19 Step 7 tests: Pearson matrix, date alignment, rolling series, live verification) |
+| **Step 8+**| Strategy Backtesting & Execution Engine | **NOT STARTED**| Future roadmap |
+
 
 ---
 
@@ -101,4 +103,18 @@ This document tracks the phased implementation milestones of the **Quantexa** qu
   - Parameter validation rejecting negative risk-free rates or non-integer annualization factors with HTTP 400.
   - Added endpoint: `GET /market/{asset}/risk-analysis`.
   - 12 comprehensive unit and integration tests added; 65/65 total tests passing.
+
+---
+
+### Step 7: Correlation & Rolling Correlation Analysis
+- **Status**: COMPLETE
+- **Deliverables**:
+  - Created `CorrelationService` (`app/services/correlation.py`).
+  - **Multi-Asset Pearson Correlation Matrix**: Pairwise symmetric Pearson correlation based strictly on daily percentage returns ((Close_t / Close_{t-1}) - 1), never on raw price levels.
+  - **Strict Date Alignment**: Synchronizes equity and 24/7 crypto/commodity trading dates via exact inner join without forward-filling or data invention.
+  - **Rolling Correlation**: Configurable lookback window $W \ge 2$ with strict causal protection and initial $W - 1$ warmup observations evaluating to `None`.
+  - Robust parameter validation: Rejects $W < 2$, non-integer, negative, or decimal windows with HTTP 400 (`INVALID_WINDOW`).
+  - Added endpoints: `GET /market/correlation` and `GET /market/correlation/rolling`.
+  - 19 comprehensive automated tests; 84/84 total tests passing.
+
 

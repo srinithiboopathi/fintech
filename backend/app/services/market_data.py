@@ -16,6 +16,8 @@ from app.models.schemas import (
     IndicatorsResponse,
     RiskMetricsResponse,
     RiskAnalysisResponse,
+    CorrelationMatrixResponse,
+    RollingCorrelationResponse,
 )
 from app.services.cache_manager import cache_manager
 from app.services.twelve_data import twelve_data_service
@@ -23,6 +25,7 @@ from app.services.data_cleaner import data_cleaning_service
 from app.services.indicators import indicator_service
 from app.services.risk_metrics import risk_metrics_service
 from app.services.risk_analysis import risk_analysis_service
+from app.services.correlation import correlation_service
 
 
 from app.utils.exceptions import (
@@ -844,6 +847,93 @@ class MarketDataService:
             drawdown_series=drawdown_series
         )
 
+    # ----------------------------------------------------------------------
+    # Step 7: Correlation & Rolling Correlation Analysis
+    # ----------------------------------------------------------------------
+    async def get_correlation_matrix(
+        self,
+        asset_identifiers: Optional[List[str]] = None,
+        refresh: bool = False
+    ) -> CorrelationMatrixResponse:
+        """
+        Calculates symmetric Pearson correlation matrix across multi-asset returns
+        (NVDA, BTC/USD, XAU/USD) strictly using Step 3 cleaned historical data.
+        Reuses cached clean datasets to conserve upstream provider quota.
+        """
+        targets = asset_identifiers or ["nvidia", "bitcoin", "gold"]
+
+        clean_points_map: Dict[str, List[CleanHistoricalPoint]] = {}
+        symbols_map: Dict[str, str] = {}
+        asset_names_map: Dict[str, str] = {}
+
+        for asset_id in targets:
+            config = resolve_asset_config(asset_id)
+            if not config:
+                raise UnsupportedAssetError(asset_id, list(SUPPORTED_ASSETS.keys()))
+
+            canonical_id = config["asset_id"]
+            symbols_map[canonical_id] = config["symbol"]
+            asset_names_map[canonical_id] = config["name"]
+
+            clean_resp = await self.get_clean_data(asset_identifier=canonical_id, refresh=refresh)
+            clean_points_map[canonical_id] = clean_resp.data
+
+        return correlation_service.compute_correlation_matrix(
+            clean_points_map=clean_points_map,
+            symbols_map=symbols_map,
+            asset_names_map=asset_names_map
+        )
+
+    async def get_rolling_correlation(
+        self,
+        window: int = 20,
+        asset1: Optional[str] = None,
+        asset2: Optional[str] = None,
+        refresh: bool = False
+    ) -> RollingCorrelationResponse:
+        """
+        Calculates pairwise rolling correlation time series across asset combinations
+        strictly from Step 3 cleaned historical data.
+        """
+        canon1 = None
+        canon2 = None
+        if asset1:
+            cfg1 = resolve_asset_config(asset1)
+            if not cfg1:
+                raise UnsupportedAssetError(asset1, list(SUPPORTED_ASSETS.keys()))
+            canon1 = cfg1["asset_id"]
+
+        if asset2:
+            cfg2 = resolve_asset_config(asset2)
+            if not cfg2:
+                raise UnsupportedAssetError(asset2, list(SUPPORTED_ASSETS.keys()))
+            canon2 = cfg2["asset_id"]
+
+        targets = ["nvidia", "bitcoin", "gold"]
+        clean_points_map: Dict[str, List[CleanHistoricalPoint]] = {}
+        symbols_map: Dict[str, str] = {}
+        asset_names_map: Dict[str, str] = {}
+
+        for asset_id in targets:
+            config = resolve_asset_config(asset_id)
+            canonical_id = config["asset_id"]
+            symbols_map[canonical_id] = config["symbol"]
+            asset_names_map[canonical_id] = config["name"]
+
+            clean_resp = await self.get_clean_data(asset_identifier=canonical_id, refresh=refresh)
+            clean_points_map[canonical_id] = clean_resp.data
+
+
+        return correlation_service.compute_rolling_correlation(
+            clean_points_map=clean_points_map,
+            symbols_map=symbols_map,
+            asset_names_map=asset_names_map,
+            window=window,
+            asset1=canon1,
+            asset2=canon2
+        )
+
 market_data_service = MarketDataService()
+
 
 

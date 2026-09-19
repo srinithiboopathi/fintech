@@ -19,6 +19,8 @@ Base URL: `http://127.0.0.1:8000`
 | `GET` | [`/market/{asset}/indicators`](#7-technical-indicators-sma--ema) | Simple and Exponential Moving Averages |
 | `GET` | [`/market/{asset}/risk-metrics`](#8-quantitative-risk-metrics) | Daily percentage returns and rolling volatility |
 | `GET` | [`/market/{asset}/risk-analysis`](#9-quantitative-risk-analysis-sharpe-ratio--maximum-drawdown) | Annualized Sharpe ratio and continuous Maximum Drawdown |
+| `GET` | [`/market/correlation`](#10-multi-asset-pearson-correlation-matrix) | Pairwise symmetric Pearson correlation matrix across multi-asset returns |
+| `GET` | [`/market/correlation/rolling`](#11-rolling-pearson-correlation) | Configurable rolling Pearson correlation time series across asset pairs |
 
 ---
 
@@ -438,11 +440,132 @@ Calculates annualized Sharpe Ratio and Maximum Drawdown analysis with continuous
 
 ---
 
+## 10. Multi-Asset Pearson Correlation Matrix
+
+### `GET /market/correlation`
+
+Calculates a symmetric Pearson correlation matrix across multi-asset returns (`NVDA`, `BTC/USD`, `XAU/USD`) strictly using Step 3 cleaned historical market data.
+
+#### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `refresh` | `boolean` | No | `false` | Bypass local cache and force fresh data fetch and calculation |
+
+#### Response: `200 OK`
+```json
+{
+  "assets": [
+    "NVIDIA",
+    "Bitcoin",
+    "Gold"
+  ],
+  "symbols": [
+    "NVDA",
+    "BTC/USD",
+    "XAU/USD"
+  ],
+  "matrix": {
+    "NVDA": {
+      "NVDA": 1.0,
+      "BTC/USD": 0.3007,
+      "XAU/USD": 0.5311
+    },
+    "BTC/USD": {
+      "NVDA": 0.3007,
+      "BTC/USD": 1.0,
+      "XAU/USD": 0.577
+    },
+    "XAU/USD": {
+      "NVDA": 0.5311,
+      "BTC/USD": 0.577,
+      "XAU/USD": 1.0
+    }
+  },
+  "observation_count": 19,
+  "start_date": "2026-08-24",
+  "end_date": "2026-09-18",
+  "source": "Twelve Data",
+  "data_status": "calculated",
+  "methodology": "Pearson correlation on aligned daily percentage returns ((close_t / close_{t-1}) - 1)"
+}
+```
+
+---
+
+## 11. Rolling Pearson Correlation
+
+### `GET /market/correlation/rolling`
+
+Calculates rolling Pearson correlation time series across asset pairs over a configurable lookback window $W \ge 2$.
+
+#### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `window` | `integer` | No | `20` | Rolling correlation window in observations ($W \ge 2$) |
+| `asset1` | `string` | No | `null` | Optional first asset identifier filter (e.g. `nvidia`, `bitcoin`, `gold`) |
+| `asset2` | `string` | No | `null` | Optional second asset identifier filter |
+| `refresh` | `boolean` | No | `false` | Bypass local cache and force fresh calculation |
+
+#### Response: `200 OK`
+```json
+{
+  "window": 20,
+  "assets": [
+    "NVIDIA",
+    "Bitcoin",
+    "Gold"
+  ],
+  "source": "Twelve Data",
+  "data_status": "calculated",
+  "pairs": [
+    {
+      "pair": "NVDA vs BTC/USD",
+      "asset1": "NVDA",
+      "asset2": "BTC/USD",
+      "window": 20,
+      "observation_count": 19,
+      "valid_correlation_count": 0,
+      "latest_correlation": null,
+      "series": [
+        {
+          "timestamp": "2026-08-24",
+          "correlation": null
+        }
+      ]
+    },
+    {
+      "pair": "BTC/USD vs XAU/USD",
+      "asset1": "BTC/USD",
+      "asset2": "XAU/USD",
+      "window": 20,
+      "observation_count": 29,
+      "valid_correlation_count": 10,
+      "latest_correlation": 0.5191,
+      "series": [
+        {
+          "timestamp": "2026-09-10",
+          "correlation": 0.7118
+        },
+        {
+          "timestamp": "2026-09-19",
+          "correlation": 0.5191
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
 ## Common Error Codes
 
 | Status Code | Reason | Cause |
 | :--- | :--- | :--- |
-| `400 Bad Request` | Invalid Parameter | Provided `sma_period`, `ema_period`, or `volatility_period` is $< 1$, non-integer, or empty. |
+| `400 Bad Request` | Invalid Parameter | Provided `sma_period`, `ema_period`, `volatility_period`, or correlation `window` is invalid ($< 1$ or $< 2$). |
 | `404 Not Found` | Unsupported Asset | Requested asset identifier is not mapped to NVDA, BTC/USD, or XAU/USD. |
 | `502 Bad Gateway` | Upstream API Error | Upstream market data provider failed or rate limit exceeded with no valid cache. |
 | `504 Gateway Timeout` | Provider Timeout | Upstream provider failed to respond within connection timeout window. |
+

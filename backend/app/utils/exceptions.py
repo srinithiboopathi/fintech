@@ -155,4 +155,20 @@ class InvalidRiskAnalysisParameterError(AlphaVantageBaseException):
             details=details
         )
 
+# Step 7: Correlation Exceptions
+class InvalidCorrelationWindowError(AlphaVantageBaseException):
+    """Raised when an invalid rolling window is supplied for correlation (e.g. < 2, float, non-digit)."""
+    def __init__(
+        self,
+        message: str = "Rolling correlation window must be a positive integer greater than or equal to 2.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INVALID_WINDOW",
+            details=details
+        )
+
+
 

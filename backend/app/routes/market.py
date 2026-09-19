@@ -15,6 +15,8 @@ from app.models.schemas import (
     IndicatorsResponse,
     RiskMetricsResponse,
     RiskAnalysisResponse,
+    CorrelationMatrixResponse,
+    RollingCorrelationResponse,
 )
 from app.services.market_data import market_data_service
 from app.services.cache_manager import cache_manager
@@ -22,9 +24,11 @@ from app.utils.exceptions import (
     InvalidIndicatorPeriodError,
     InvalidVolatilityPeriodError,
     InvalidRiskAnalysisParameterError,
+    InvalidCorrelationWindowError,
 )
 
 router = APIRouter()
+
 
 def validate_indicator_period(val: Any) -> int:
     """
@@ -101,6 +105,29 @@ def validate_risk_analysis_params(rf_val: Any, af_val: Any) -> tuple[float, int]
             raise InvalidRiskAnalysisParameterError()
 
     return rf, af
+
+def validate_rolling_window(val: Any) -> int:
+    """
+    Validates that a rolling correlation window is a positive integer >= 2.
+    Rejects: 0, 1, negative numbers, decimals, non-digit strings, empty values.
+    Raises InvalidCorrelationWindowError (HTTP 400).
+    """
+    if val is None:
+        raise InvalidCorrelationWindowError()
+
+    val_str = str(val).strip()
+    if not val_str:
+        raise InvalidCorrelationWindowError()
+
+    # Reject floats, negative numbers, non-digit characters
+    if not re.fullmatch(r"\d+", val_str):
+        raise InvalidCorrelationWindowError()
+
+    window = int(val_str)
+    if window < 2:
+        raise InvalidCorrelationWindowError()
+
+    return window
 
 
 
@@ -361,5 +388,74 @@ async def get_market_risk_analysis(
         annualization_factor=valid_af,
         refresh=refresh or False
     )
+
+
+# ==============================================================================
+# Step 7: Correlation & Rolling Correlation Endpoints
+# ==============================================================================
+
+@router.get(
+    "/market/correlation",
+    response_model=CorrelationMatrixResponse,
+    summary="Get Multi-Asset Pearson Correlation Matrix",
+    tags=["Correlation & Portfolio Risk"]
+)
+async def get_market_correlation(
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Calculates pairwise symmetric Pearson correlation matrix across multi-asset returns
+    (NVIDIA, Bitcoin, Gold) strictly from Step 3 cleaned historical data.
+    Aligns observations on matching dates without forward-filling.
+    """
+    return await market_data_service.get_correlation_matrix(refresh=refresh or False)
+
+
+@router.get(
+    "/market/correlation/rolling",
+    response_model=RollingCorrelationResponse,
+    summary="Get Rolling Pearson Correlation Time Series",
+    tags=["Correlation & Portfolio Risk"]
+)
+async def get_market_rolling_correlation(
+    window: Optional[str] = Query(
+        "20",
+        description="Rolling correlation lookback window in observations (positive integer >= 2, default 20)"
+    ),
+    asset1: Optional[str] = Query(
+        None,
+        description="Optional first asset identifier (e.g. 'nvidia', 'bitcoin', 'gold')"
+    ),
+    asset2: Optional[str] = Query(
+        None,
+        description="Optional second asset identifier (e.g. 'nvidia', 'bitcoin', 'gold')"
+    ),
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Calculates pairwise rolling Pearson correlation time series across asset combinations
+    strictly from Step 3 cleaned historical data.
+
+    Query Parameters:
+    - window: Positive integer >= 2 (default: 20)
+    - asset1: Optional asset filter
+    - asset2: Optional asset filter
+    - refresh: Optional boolean to force fresh fetch and calculation
+    """
+    valid_window = validate_rolling_window(window)
+
+    return await market_data_service.get_rolling_correlation(
+        window=valid_window,
+        asset1=asset1,
+        asset2=asset2,
+        refresh=refresh or False
+    )
+
 
 

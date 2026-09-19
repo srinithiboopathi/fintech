@@ -233,4 +233,49 @@ class RiskAnalysisResponse(BaseModel):
     drawdown_series: List[DrawdownPoint] = Field(default_factory=list, description="Historical drawdown and running peak time series")
 
 
+# ==============================================================================
+# Step 7: Correlation & Rolling Correlation Models
+# ==============================================================================
+
+class CorrelationMatrixResponse(BaseModel):
+    """Pairwise Pearson correlation matrix across multi-asset universe computed on aligned daily returns."""
+    assets: List[str] = Field(..., description="List of included assets")
+    symbols: List[str] = Field(..., description="List of asset ticker symbols")
+    matrix: Dict[str, Dict[str, Optional[float]]] = Field(..., description="Symmetric correlation matrix by symbol with 1.0 diagonal")
+    observation_count: int = Field(..., description="Number of strictly overlapping, aligned daily return observations")
+    start_date: Optional[str] = Field(None, description="Start date of overlapping return observations")
+    end_date: Optional[str] = Field(None, description="End date of overlapping return observations")
+    source: str = Field(default="Twelve Data", description="Market data provider source")
+    data_status: str = Field(default="calculated", description="Data processing status")
+    methodology: str = Field(
+        default="Pearson correlation on aligned daily percentage returns ((close_t / close_{t-1}) - 1)",
+        description="Mathematical methodology description"
+    )
+
+class RollingCorrelationPoint(BaseModel):
+    """Observation point for rolling correlation series."""
+    timestamp: str = Field(..., description="ISO-8601 UTC timestamp or date")
+    correlation: Optional[float] = Field(None, description="Rolling Pearson correlation coefficient (null for first window-1 warmup points)")
+
+class RollingPairSeries(BaseModel):
+    """Rolling correlation series for a specific asset pair."""
+    pair: str = Field(..., description="Asset pair descriptor, e.g. 'NVDA vs BTC/USD'")
+    asset1: str = Field(..., description="First asset identifier or symbol")
+    asset2: str = Field(..., description="Second asset identifier or symbol")
+    window: int = Field(..., description="Configured rolling lookback window in observations")
+    observation_count: int = Field(..., description="Total overlapping return observations for this pair")
+    valid_correlation_count: int = Field(..., description="Count of valid (non-null) rolling correlation values")
+    latest_correlation: Optional[float] = Field(None, description="Most recent valid rolling correlation value")
+    series: List[RollingCorrelationPoint] = Field(default_factory=list, description="Chronological rolling correlation time series")
+
+class RollingCorrelationResponse(BaseModel):
+    """Complete rolling correlation response payload across asset pairs."""
+    window: int = Field(..., description="Rolling lookback window in observations")
+    assets: List[str] = Field(..., description="List of included assets")
+    source: str = Field(default="Twelve Data", description="Market data provider source")
+    data_status: str = Field(default="calculated", description="Data processing status")
+    pairs: List[RollingPairSeries] = Field(default_factory=list, description="Rolling correlation time series for each pairwise combination")
+
+
+
 

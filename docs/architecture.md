@@ -17,6 +17,7 @@ graph TD
         MDS --> IS[Indicator Service<br/>/app/services/indicators.py]
         MDS --> RMS[Risk Metrics Service<br/>/app/services/risk_metrics.py]
         MDS --> RAS[Risk Analysis Service<br/>/app/services/risk_analysis.py]
+        MDS --> CS[Correlation Service<br/>/app/services/correlation.py]
     end
     
     subgraph "External Providers"
@@ -152,9 +153,15 @@ Built directly on top of the clean historical data layer, ensuring reproducible 
 - **Risk Analysis Engine (`app/services/risk_analysis.py`)**:
   - **Annualized Sharpe Ratio**: Excess return over annualized risk-free rate divided by sample standard deviation ($ddof=1$) scaled by $\sqrt{N}$.
   - **Maximum Drawdown (MDD)**: Continuous running peak tracking ($\text{Peak}_t = \max_{i \le t}(P_i)$) with full drawdown curve and trough date identification.
+- **Correlation Engine (`app/services/correlation.py`)**:
+  - **Multi-Asset Pearson Correlation Matrix**: Pairwise symmetric Pearson correlation based strictly on aligned daily returns without forward-filling.
+  - **Rolling Correlation**: Dynamic causal correlation time series over configurable lookback window $W \ge 2$.
 - **API Endpoints**:
   - Clean Data: `GET /market/{asset}/data`
   - Quality Summary: `GET /market/{asset}/data/summary`
   - Technical Indicators: `GET /market/{asset}/indicators`
   - Quantitative Risk Metrics: `GET /market/{asset}/risk-metrics`
   - Quantitative Risk Analysis: `GET /market/{asset}/risk-analysis`
+  - Multi-Asset Correlation Matrix: `GET /market/correlation`
+  - Rolling Pairwise Correlation: `GET /market/correlation/rolling`
+

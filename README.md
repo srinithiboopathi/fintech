@@ -3,8 +3,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2.6+-e92063.svg)](https://docs.pydantic.dev/)
-[![Pytest Tests](https://img.shields.io/badge/tests-65%20passed-success.svg)](#testing-instructions)
-[![Status](https://img.shields.io/badge/Milestone-Step%206%20Complete-emerald.svg)](#current-project-status)
+[![Pytest Tests](https://img.shields.io/badge/tests-84%20passed-success.svg)](#testing-instructions)
+[![Status](https://img.shields.io/badge/Milestone-Step%207%20Complete-emerald.svg)](#current-project-status)
 
 ---
 
@@ -75,6 +75,13 @@ $$\text{Sharpe} = \left( \frac{\bar{R} - \frac{R_f}{N}}{\sigma} \right) \times \
 ### Maximum Drawdown (MDD)
 Tracks running peak price discovery and computes maximum historical peak-to-trough decline with exact trough timestamp identification:
 $$\text{Peak}_t = \max_{0 \le i \le t}(P_i), \quad \text{Drawdown}_t = \left( \frac{P_t}{\text{Peak}_t} - 1 \right) \times 100\%$$
+
+### Multi-Asset Pearson Correlation
+Computes pairwise symmetric Pearson correlation matrices strictly across aligned daily returns with unit diagonal:
+$$r_{xy} = \frac{\sum_{i=1}^n (X_i - \bar{X})(Y_i - \bar{Y})}{\sqrt{\sum_{i=1}^n (X_i - \bar{X})^2 \cdot \sum_{i=1}^n (Y_i - \bar{Y})^2}}$$
+
+### Rolling Correlation
+Computes dynamic causal co-movement across rolling windows ($W \ge 2$) with strict initial $W - 1$ warmup preservation.
 
 ---
 
@@ -219,6 +226,8 @@ LATEST_CACHE_TTL_SECONDS=60
 | `GET` | `/market/{asset}/indicators` | `sma_period`, `ema_period`, `refresh` | SMA and EMA technical indicators |
 | `GET` | `/market/{asset}/risk-metrics` | `volatility_period`, `refresh` | Daily percentage returns & rolling volatility ($ddof=1$) |
 | `GET` | `/market/{asset}/risk-analysis` | `risk_free_rate`, `annualization_factor`, `refresh` | Annualized Sharpe ratio & running peak Maximum Drawdown |
+| `GET` | `/market/correlation` | `refresh` | Pairwise symmetric Pearson correlation matrix across multi-asset returns |
+| `GET` | `/market/correlation/rolling` | `window`, `asset1`, `asset2`, `refresh` | Configurable rolling Pearson correlation time series across asset pairs |
 
 For complete schemas and examples, see [`docs/api.md`](docs/api.md).
 
@@ -241,8 +250,9 @@ pytest backend/tests -v
 - `backend/tests/test_indicators.py` — SMA, EMA, period validation, look-ahead protection (11 tests)
 - `backend/tests/test_risk_metrics.py` — Daily returns, rolling volatility, Bessel's correction (12 tests)
 - `backend/tests/test_risk_analysis.py` — Sharpe Ratio, Maximum Drawdown, running peak, error handling (12 tests)
+- `backend/tests/test_correlation.py` — Pearson matrix, date alignment, rolling series, HTTP 400 validation (19 tests)
 
-**Total: 65 automated tests (100% passing)**.
+**Total: 84 automated tests (100% passing)**.
 
 ---
 
@@ -257,7 +267,9 @@ pytest backend/tests -v
 | **Step 5: Returns & Volatility** | **COMPLETE** | Percentage returns and rolling sample volatility ($ddof=1$) |
 | **Step 5.5: Structure Reorganization** | **COMPLETE** | Professional hackathon repository layout & documentation |
 | **Step 6: Sharpe Ratio & Drawdown** | **COMPLETE** | Annualized Sharpe Ratio and running peak Maximum Drawdown |
-| **Step 7+: Systematic Backtesting** | **NOT STARTED** | Reserved for subsequent milestone |
+| **Step 7: Correlation & Rolling Correlation** | **COMPLETE** | Multi-asset Pearson correlation matrix and rolling correlation series |
+| **Step 8+: Systematic Backtesting** | **NOT STARTED** | Reserved for subsequent milestone |
+
 
 ---
 

@@ -3,7 +3,7 @@
 This document details the mathematical models, formulas, statistical assumptions, and numerical implementations active in the **Quantexa** analytics platform.
 
 > [!NOTE]
-> This document describes the currently implemented quantitative algorithms (Steps 1–6). Future analytical models (such as portfolio correlation and backtesting) are reserved for subsequent steps.
+> This document describes the currently implemented quantitative algorithms (Steps 1–7). Future analytical models (such as systematic backtesting) are reserved for subsequent steps.
 
 ---
 
@@ -161,12 +161,49 @@ $$t_{\text{MDD}} = \arg\min_{0 \le t \le N} (\text{Drawdown}_t)$$
 
 ---
 
+## 7. Multi-Asset Pearson Correlation & Rolling Correlation
+
+The platform provides institutional-grade pairwise and multi-asset correlation analysis based exclusively on **daily percentage returns**, completely eliminating the severe statistical pitfalls of correlating non-stationary raw price levels.
+
+### 1. Daily Return Transformation:
+For each asset $k$, daily price discovery is mapped to discrete percentage returns:
+$$R_{k,t} = \frac{P_{k,t} - P_{k,t-1}}{P_{k,t-1}}$$
+
+### 2. Strict Date Alignment (No Forward-Filling):
+Because equity markets (`NVDA`) trade on business days while cryptocurrency markets (`BTC/USD`) trade continuously, timestamp alignment is strictly enforced:
+- **Inner Join**: Return series are aligned strictly on exact overlapping UTC dates ($t \in \mathcal{D}_{NVDA} \cap \mathcal{D}_{BTC} \cap \mathcal{D}_{XAU}$).
+- **Zero Forward-Filling**: Missing return observations are never artificially interpolated, forward-filled, or zero-filled.
+- **Reporting**: The exact number of overlapping observations and the start/end dates are explicitly reported.
+
+### 3. Pearson Product-Moment Correlation:
+The empirical sample correlation between asset returns $X$ and $Y$ over $n$ overlapping days is computed as:
+$$r_{xy} = \frac{\sum_{i=1}^n (X_i - \bar{X})(Y_i - \bar{Y})}{\sqrt{\sum_{i=1}^n (X_i - \bar{X})^2 \cdot \sum_{i=1}^n (Y_i - \bar{Y})^2}}$$
+
+Where $\bar{X} = \frac{1}{n} \sum_{i=1}^n X_i$ and $\bar{Y} = \frac{1}{n} \sum_{i=1}^n Y_i$.
+
+#### Operational Characteristics & Matrix Invariants:
+- **Symmetry**: $r_{xy} \equiv r_{yx}$ for all asset pairs.
+- **Unit Diagonal**: $r_{xx} = 1.0$ for any non-zero variance series.
+- **Bounded Range**: $r \in [-1.0, 1.0]$.
+- **Zero Variance Safety**: Evaluates strictly to `None` if sample variance is zero or $n < 2$.
+
+### 4. Rolling Correlation Analysis:
+Tracks dynamic co-movement over a configurable rolling lookback window of $W$ observations ($W \ge 2$):
+- **Warmup Period**: For any observation $t < W - 1$, fewer than $W$ observations exist. The rolling correlation evaluates strictly to `None`.
+- **Causal Calculation**: At step $t \ge W - 1$, correlation is calculated strictly on return slices $[t - W + 1 : t + 1]$. Future returns ($i > t$) are mathematically inaccessible.
+- **Multi-Asset Pairing**: Pairwise rolling series are computed independently for `NVDA vs BTC/USD`, `NVDA vs XAU/USD`, and `BTC/USD vs XAU/USD`.
+
+---
+
 ## Summary of Quantitative Invariants
 
 | Invariant | Implementation Mechanism |
 | :--- | :--- |
-| **No Look-Ahead Bias** | Running peak $\text{Peak}_t = \max_{i \le t}(P_i)$ depends strictly on past/current prices. |
+| **No Look-Ahead Bias** | Running peak $\text{Peak}_t = \max_{i \le t}(P_i)$ and rolling correlation slice $[t - W + 1 : t + 1]$ depend strictly on past/current data. |
 | **Missing Value Safety** | Explicit `None` propagation; never interpolated or zero-filled. |
-| **Bessel's Correction** | Variance denominator is $m - 1$, preventing sample bias. |
-| **Zero Variance Protection** | Safely evaluates to `None` if $\sigma = 0.0$, preventing division by zero. |
+| **Bessel's Correction** | Sample variance denominator is $m - 1$, preventing sample bias. |
+| **Zero Variance Protection** | Safely evaluates to `None` if $\sigma = 0.0$ or denominator evaluates to zero. |
+| **Stationary Returns Only** | Correlation is calculated on daily return series, never on non-stationary raw prices. |
+| **Strict Date Alignment** | Overlapping inner-join on UTC dates; zero forward-filling across market closures. |
 | **Multi-Asset Compatibility** | Uniform mathematical definitions applied across Equities, Cryptocurrencies, and Commodities. |
+
