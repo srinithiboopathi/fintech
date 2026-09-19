@@ -3,6 +3,8 @@ from pathlib import Path
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
+from app.correlation.matrix import compute_cross_asset_correlation_matrix
+
 router = APIRouter(prefix="/market", tags=["Market"])
 
 DATA_ROOT = Path(__file__).resolve().parents[3] / "datasets" / "raw"
@@ -64,6 +66,128 @@ def available_assets():
     }
 
 
+@router.get("/overview")
+def get_market_overview():
+    overview = []
+
+    for asset, file_path in ASSETS.items():
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset not found: {file_path}",
+            )
+
+        df = pd.read_csv(file_path)
+
+        if "Date" not in df.columns or "Close" not in df.columns:
+            raise HTTPException(
+                status_code=500,
+                detail=f"{asset} dataset must contain Date and Close columns.",
+            )
+
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
+
+        df = df.dropna(subset=["Date", "Close"])
+        df = df.sort_values("Date")
+        df = df.drop_duplicates(subset=["Date"], keep="last")
+
+        if df.empty:
+            continue
+
+        latest = df.iloc[-1]
+
+        latest_price = float(latest["Close"])
+
+        if len(df) >= 2:
+            previous_price = float(df.iloc[-2]["Close"])
+
+            if previous_price != 0:
+                daily_change = (
+                    (latest_price - previous_price)
+                    / previous_price
+                )
+            else:
+                daily_change = 0.0
+        else:
+            previous_price = latest_price
+            daily_change = 0.0
+
+        overview.append(
+            {
+                "asset": asset.upper(),
+                "latest_price": round(latest_price, 4),
+                "previous_price": round(previous_price, 4),
+                "daily_change": round(float(daily_change), 6),
+                "date": str(latest["Date"].date()),
+                "data_points": int(len(df)),
+            }
+        )
+
+    return {
+        "assets": overview,
+    }
+
+
+@router.get("/correlation")
+def get_correlation():
+    prices = {}
+
+    for asset, file_path in ASSETS.items():
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset not found: {file_path}",
+            )
+
+        df = pd.read_csv(file_path)
+
+        if "Date" not in df.columns or "Close" not in df.columns:
+            raise HTTPException(
+                status_code=500,
+                detail=f"{asset} dataset must contain Date and Close columns.",
+            )
+
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
+
+        df = df.dropna(subset=["Date", "Close"])
+        df = df.sort_values("Date")
+        df = df.drop_duplicates(subset=["Date"], keep="last")
+
+        prices[asset.upper()] = df.set_index("Date")["Close"]
+
+    correlation = compute_cross_asset_correlation_matrix(
+        prices,
+        join="inner",
+        method="pearson",
+        min_periods=2,
+    )
+
+    matrix = []
+
+    for asset in correlation.index:
+        row = {
+            "asset": asset,
+        }
+
+        for column in correlation.columns:
+            value = correlation.loc[asset, column]
+
+            row[column] = (
+                None
+                if pd.isna(value)
+                else round(float(value), 4)
+            )
+
+        matrix.append(row)
+
+    return {
+        "assets": list(correlation.columns),
+        "matrix": matrix,
+    }
+
+
 @router.get("/{asset}")
 def get_market_data(
     asset: str,
@@ -75,21 +199,32 @@ def get_market_data(
 
     if start:
         start_date = pd.to_datetime(start, errors="coerce")
+
         if pd.isna(start_date):
-            raise HTTPException(status_code=400, detail="Invalid start date.")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid start date.",
+            )
+
         df = df[df["Date"] >= start_date]
 
     if end:
         end_date = pd.to_datetime(end, errors="coerce")
+
         if pd.isna(end_date):
-            raise HTTPException(status_code=400, detail="Invalid end date.")
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid end date.",
+            )
+
         df = df[df["Date"] <= end_date]
 
     df = df.tail(limit)
 
-    records = df.astype(object).where(pd.notnull(df), None).to_dict(
-        orient="records"
-    )
+    records = df.astype(object).where(
+        pd.notnull(df),
+        None,
+    ).to_dict(orient="records")
 
     return {
         "asset": asset.lower(),

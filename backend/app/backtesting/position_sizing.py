@@ -8,7 +8,6 @@ from abc import ABC, abstractmethod
 
 
 class BasePositionSizer(ABC):
-    """Abstract base class for position sizing."""
 
     @abstractmethod
     def calculate_allocation(
@@ -22,11 +21,6 @@ class BasePositionSizer(ABC):
 
 
 class FullCapitalSizer(BasePositionSizer):
-    """
-    Allocates a fraction of current equity when entering a long position.
-
-    fraction=1.0 means use 100% of current equity.
-    """
 
     def __init__(self, fraction: float = 1.0):
         if not (0.0 < fraction <= 1.0):
@@ -47,6 +41,6 @@ class FullCapitalSizer(BasePositionSizer):
         if signal <= 0 or price <= 0:
             return 0.0
 
-        allocation = current_equity * self.fraction
+        allocation = min(current_equity, available_cash) * self.fraction
 
         return max(0.0, float(allocation))

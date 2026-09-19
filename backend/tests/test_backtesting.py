@@ -39,7 +39,7 @@ class TestTransactionCosts:
 class TestPositionSizing:
     def test_full_capital_sizer(self):
         sizer = FullCapitalSizer(fraction=1.0)
-        assert sizer.calculate_allocation(current_equity=100000.0, available_cash=50000.0, signal=1, price=100.0) == 100000.0
+        assert sizer.calculate_allocation(current_equity=100000.0, available_cash=50000.0, signal=1, price=100.0) == 50000.0
         assert sizer.calculate_allocation(current_equity=100000.0, available_cash=50000.0, signal=0, price=100.0) == 0.0
 
     def test_invalid_fraction_raises(self):
