@@ -84,7 +84,7 @@ def run_backtest(req: BacktestRequest, db: Session = Depends(get_db)):
             "sharpe_ratio": result["sharpe_ratio"],
             "max_drawdown": result["max_drawdown_pct"],
             "number_of_trades": result["total_trades"],
-            "transaction_cost": result["total_transaction_costs"],
+            "transaction_cost": result.get("transaction_cost", 0.0),
             "parameters": req.parameters,
             "equity_curve": result["equity_curve"]
         }
