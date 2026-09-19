@@ -230,4 +230,26 @@ def get_market_data(
         "asset": asset.lower(),
         "count": len(records),
         "data": records,
+    }@router.get("/portfolio")
+def get_portfolio_analysis(
+    gold: float = Query(default=33.33, ge=0, le=100),
+    bitcoin: float = Query(default=33.33, ge=0, le=100),
+    nvidia: float = Query(default=33.34, ge=0, le=100),
+):
+    total = gold + bitcoin + nvidia
+
+    if abs(total - 100.0) > 0.01:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Portfolio weights must total 100%. Current total: {total:.2f}%",
+        )
+
+    return {
+        "weights": {
+            "GOLD": round(gold, 2),
+            "BITCOIN": round(bitcoin, 2),
+            "NVIDIA": round(nvidia, 2),
+        },
+        "total_weight": round(total, 2),
+        "message": "Portfolio allocation is valid.",
     }
