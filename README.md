@@ -19,6 +19,15 @@ QUANTLAB is a full-stack institutional-grade quantitative finance platform desig
   - Standalone and weighted performance contribution decomposition ($w_i \times R_i$)
   - Euler risk decomposition via annualized covariance matrix ($\mathbf{\Sigma} = 252 \times \mathbf{\Sigma}_{\text{daily}}$, Marginal & Component Risk Contributions $\text{CCR}_i$, Percentage Risk $\% \text{CR}_i$)
   - Normalized Base-100 comparative performance curves
+- **Portfolio Optimization & Efficient Frontier (Phase 12)**:
+  - Constrained Markowitz Modern Portfolio Theory (MPT) optimization engine using SciPy SLSQP
+  - Global Minimum Variance (GMV) portfolio solving ($\min \mathbf{w}^T \mathbf{\Sigma} \mathbf{w}$)
+  - Maximum Sharpe Ratio (Tangency) portfolio solving ($\max (\mu_p - r_f) / \sigma_p$)
+  - 1/N Equal-Weight benchmark portfolio evaluation with constraint feasibility checks
+  - Markowitz Efficient Frontier continuous curve generation via target-return sweeps
+  - Deterministic random feasible portfolio sampling on the constrained simplex for cloud scatter visualization (5,000+ points, seed 42)
+  - Interactive Apache ECharts Efficient Frontier visualization with risk/return coordinates and allocation tooltips
+  - Descriptive, non-ranking comparative matrix across strategy configurations
 - **Strategy & Backtesting Engine**:
   - SMA Crossover
   - EMA Trend

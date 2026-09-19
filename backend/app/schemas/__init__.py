@@ -86,6 +86,15 @@ from backend.app.schemas.portfolio import (
     AssetPerformanceContribution,
     AssetRiskContribution,
 )
+from backend.app.schemas.portfolio_optimization import (
+    PortfolioOptimizationRequest,
+    PortfolioOptimizationResponse,
+    OptimalPortfolioPoint,
+    OptimalPortfoliosContainer,
+    EfficientFrontierPoint,
+    RandomPortfolioPoint,
+    PortfolioComparisonItem,
+)
 
 __all__ = [
     "MarketDataPoint",
@@ -154,6 +163,13 @@ __all__ = [
     "PortfolioComparisonPoint",
     "AssetPerformanceContribution",
     "AssetRiskContribution",
+    "PortfolioOptimizationRequest",
+    "PortfolioOptimizationResponse",
+    "OptimalPortfolioPoint",
+    "OptimalPortfoliosContainer",
+    "EfficientFrontierPoint",
+    "RandomPortfolioPoint",
+    "PortfolioComparisonItem",
 ]
 
 

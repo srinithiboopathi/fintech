@@ -2,15 +2,54 @@
 
 ## Current Status Overview
 
-- **Current Phase**: Phase 11 — Advanced Portfolio Analytics
+- **Current Phase**: Phase 12 — Portfolio Optimization & Efficient Frontier
 - **Status**: Completed
 - **Current Git Branch**: `feature/quantlab-platform`
-- **Completed Phases**: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, Phase 11
-- **Next Phase**: Phase 12 — Portfolio Optimization
+- **Completed Phases**: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8, Phase 9, Phase 10, Phase 11, Phase 12
+- **Next Phase**: Complete
 
 ---
 
 ## Phase Log
+
+### Phase 12: Portfolio Optimization & Efficient Frontier
+- **Goal**: Implement constrained Markowitz Modern Portfolio Theory (MPT) optimization, Global Minimum Variance (GMV) portfolio solving ($\min \mathbf{w}^T \mathbf{\Sigma} \mathbf{w}$), Maximum Sharpe Ratio (Tangency) portfolio solving ($\max (\mu_p - r_f)/\sigma_p$), 1/N Equal-Weight benchmark evaluation with simplex feasibility checks, Markowitz Efficient Frontier continuous curve generation via target-return sweeps, deterministic random feasible portfolio sampling on the constrained simplex for cloud scatter visualization (5,000+ points, seed 42), interactive Apache ECharts Efficient Frontier visualization, dedicated frontend route `/portfolio/optimization`, comprehensive unit/integration test suites, and quantitative methodology documentation.
+- **Status**: Completed
+
+#### Files Created
+- `backend/app/portfolio/optimization/constraints.py` (Simplex feasibility validation, weight bounds, parameter sanitization)
+- `backend/app/portfolio/optimization/optimizer.py` (Markowitz quadratic programming solvers using SciPy SLSQP: Equal Weight, GMV, Max Sharpe, Target Return)
+- `backend/app/portfolio/optimization/frontier.py` (Markowitz Efficient Frontier target return sweeps and uniform random portfolio simplex sampling)
+- `backend/app/portfolio/optimization/service.py` (PortfolioOptimizationService orchestrator, date alignment, returns/covariance matrix)
+- `backend/app/portfolio/optimization/__init__.py` (Package exports)
+- `backend/app/schemas/portfolio_optimization.py` (Pydantic v2 schemas: PortfolioOptimizationRequest, PortfolioOptimizationResponse, OptimalPortfolioPoint, EfficientFrontierPoint, etc.)
+- `backend/tests/test_portfolio_optimization.py` (17 unit tests for mathematical accuracy, GMV minimum property, Max Sharpe property, bounds, random portfolio reproducibility)
+- `backend/tests/test_portfolio_optimization_api.py` (6 integration tests for POST /api/v1/portfolio/optimize, custom bounds, user weights, 422 validations)
+- `frontend/src/components/charts/EfficientFrontierChart.tsx` (Apache ECharts scatter cloud, continuous frontier curve, and optimal portfolio markers)
+- `frontend/src/pages/PortfolioOptimizationPage.tsx` (Institutional Portfolio Optimization terminal page)
+- `docs/portfolio-optimization-methodology.md` (Comprehensive quantitative documentation on Markowitz optimization, MPT formulas, simplex constraints, and non-prediction disclosures)
+
+#### Files Modified
+- `backend/app/api/portfolio.py` (Mounted `POST /api/v1/portfolio/optimize` endpoint)
+- `backend/app/schemas/__init__.py` & `backend/app/portfolio/__init__.py` (Exported Phase 12 optimization schemas and services)
+- `backend/app/services/__init__.py` (Cleaned up intra-package exports)
+- `frontend/src/types/api.ts` (Added typed interfaces for portfolio optimization)
+- `frontend/src/api/portfolioApi.ts` (Added `optimizePortfolio` client method)
+- `frontend/src/components/charts/index.ts` (Exported `EfficientFrontierChart`)
+- `frontend/src/components/layout/Sidebar.tsx` (Added `Optimization` nav item with `P12` badge)
+- `frontend/src/components/layout/TopBar.tsx` (Added `/portfolio/optimization` header title)
+- `frontend/src/App.tsx` (Registered `/portfolio/optimization` route inside ProtectedRoute)
+- `README.md` (Updated Key Platform Features with Phase 12 Portfolio Optimization)
+
+#### Verification & Test Results
+- **Full Backend Pytest Suite**: **240/240 tests passed** (100% pass rate, 0 failed, 0 skipped in 17.78s).
+- **TypeScript Compilation**: `npx tsc --noEmit` passed with 0 errors.
+- **Frontend Production Build**: `npm run build` passed with 0 errors (`dist/` generated cleanly).
+- **Live Endpoint Verification**: `POST /api/v1/portfolio/optimize` returned HTTP 200 with optimal portfolios, efficient frontier, and random portfolios.
+- **Dataset Integrity**: Verified read-only access on `datasets/raw/` and `datasets/processed/` (100% unmodified).
+- **Git Branch Check**: Preserved on `feature/quantlab-platform`, zero automated commits/pushes.
+
+---
 
 ### Phase 11: Advanced Portfolio Analytics
 - **Goal**: Extend QuantLab from individual-asset analysis into multi-asset portfolio-level analysis across Gold, Bitcoin, and NVIDIA. Implement aligned daily returns ($r_{p,t} = \sum w_i r_{i,t}$), cumulative growth and dollar equity curve ($V_t = V_0(1+C_{p,t})$), institutional summary metrics (CAGR, Annualized Volatility, Sharpe, Max Drawdown), performance contribution decomposition ($w_i \times R_i$), Euler risk decomposition via annualized covariance matrix ($\mathbf{\Sigma} = 252 \times \mathbf{\Sigma}_{\text{daily}}$, $\text{MCR}_i$, $\text{CCR}_i$, $\%\text{CR}_i$), Base-100 normalized comparison, interactive React charts and controls, and comprehensive unit/integration test suites.

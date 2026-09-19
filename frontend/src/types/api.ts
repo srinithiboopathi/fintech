@@ -596,3 +596,76 @@ export interface PortfolioAnalysisResponse {
   comparison: PortfolioComparisonPoint[];
 }
 
+// ==========================================
+// 10. Portfolio Optimization Types (Phase 12)
+// ==========================================
+
+export interface PortfolioOptimizationRequest {
+  assets: string[];
+  start_date?: string | null;
+  end_date?: string | null;
+  risk_free_rate?: number;
+  min_weight?: number;
+  max_weight?: number;
+  random_portfolios?: number;
+  frontier_points?: number;
+  random_seed?: number;
+  user_weights?: Record<string, number> | null;
+}
+
+export interface OptimalPortfolioPoint {
+  portfolio_type: string;
+  weights: Record<string, number>;
+  expected_return: number;
+  variance: number;
+  volatility: number;
+  sharpe_ratio: number;
+}
+
+export interface EfficientFrontierPoint {
+  target_return: number;
+  expected_return: number;
+  variance: number;
+  volatility: number;
+  sharpe_ratio: number;
+  weights: Record<string, number>;
+}
+
+export interface RandomPortfolioPoint {
+  expected_return: number;
+  volatility: number;
+  sharpe_ratio: number;
+  weights: Record<string, number>;
+}
+
+export interface OptimalPortfoliosContainer {
+  max_sharpe: OptimalPortfolioPoint;
+  min_volatility: OptimalPortfolioPoint;
+  equal_weight: OptimalPortfolioPoint;
+  user_portfolio?: OptimalPortfolioPoint | null;
+}
+
+export interface PortfolioComparisonItem {
+  name: string;
+  weights: Record<string, number>;
+  expected_return: number;
+  volatility: number;
+  sharpe_ratio: number;
+}
+
+export interface PortfolioOptimizationResponse {
+  assets: string[];
+  start_date: string;
+  end_date: string;
+  observations: number;
+  risk_free_rate: number;
+  min_weight: number;
+  max_weight: number;
+  asset_expected_returns: Record<string, number>;
+  covariance_matrix: Record<string, Record<string, number>>;
+  optimal_portfolios: OptimalPortfoliosContainer;
+  efficient_frontier: EfficientFrontierPoint[];
+  random_portfolios: RandomPortfolioPoint[];
+  comparison: PortfolioComparisonItem[];
+}
+

@@ -14,6 +14,7 @@ import { RobustnessLabPage } from './pages/RobustnessLabPage';
 import { MarketRegimesPage } from './pages/MarketRegimesPage';
 import { ResearchReportPage } from './pages/ResearchReportPage';
 import { PortfolioAnalyticsPage } from './pages/PortfolioAnalyticsPage';
+import { PortfolioOptimizationPage } from './pages/PortfolioOptimizationPage';
 
 export const App: React.FC = () => {
   return (
@@ -30,6 +31,7 @@ export const App: React.FC = () => {
             <Route path="/market-analysis" element={<MarketAnalysisPage />} />
             <Route path="/correlation" element={<CorrelationLabPage />} />
             <Route path="/portfolio" element={<PortfolioAnalyticsPage />} />
+            <Route path="/portfolio/optimization" element={<PortfolioOptimizationPage />} />
             <Route path="/strategy-builder" element={<StrategyBuilderPage />} />
             <Route path="/backtesting" element={<BacktestingPage />} />
             <Route path="/trade-history" element={<TradeHistoryPage />} />

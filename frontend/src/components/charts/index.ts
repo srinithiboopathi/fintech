@@ -11,3 +11,4 @@ export * from './RegimeTimelineChart';
 export * from './PortfolioEquityChart';
 export * from './PortfolioComparisonChart';
 export * from './PortfolioDrawdownChart';
+export * from './EfficientFrontierChart';
