@@ -17,7 +17,8 @@ This document tracks the phased implementation milestones of the **Quantexa** qu
 | **Step 6** | Risk Analysis (Sharpe Ratio & Maximum Drawdown) | **COMPLETE** | 65 tests passed (12 Step 6 tests: Annualized Sharpe, Running Peak Drawdown, live verification) |
 | **Step 7** | Correlation & Rolling Correlation Analysis | **COMPLETE** | 84 tests passed (19 Step 7 tests: Pearson matrix, date alignment, rolling series, live verification) |
 | **Step 8** | Strategy-Agnostic Backtesting Engine | **COMPLETE** | 110 tests passed (26 Step 8 tests: Next-Observation execution, fee accounting, Buy & Hold benchmark, live verification) |
-| **Step 9+**| Quantitative Trading Strategies | **NOT STARTED**| Future roadmap |
+| **Step 9** | Four Quantitative Trading Strategies | **COMPLETE** | 150 tests passed (40 Step 9 tests: SMA Crossover, EMA Trend, Momentum, Mean Reversion, Signals & Backtest APIs, live verification) |
+| **Step 10+**| Advanced Robustness, Regime Analysis & Platform UI | **NOT STARTED**| Future roadmap |
 
 ---
 
@@ -133,6 +134,25 @@ This document tracks the phased implementation milestones of the **Quantexa** qu
   - **Risk Metrics Integration**: Direct reuse of Step 6 Maximum Drawdown and annualized Sharpe Ratio calculations.
   - Added endpoint: `POST /market/{asset}/backtest`.
   - 26 comprehensive automated unit and integration tests added; 110/110 total tests passing.
+
+---
+
+### Step 9: Four Quantitative Trading Strategies
+- **Status**: COMPLETE
+- **Deliverables**:
+  - Created dedicated strategy dispatcher and strategy classes in `StrategyDispatcher` (`app/services/strategies.py`).
+  - Implemented 4 canonical trading strategies:
+    1. **SMA Crossover**: Dual moving-average crossover (`short_period`, `long_period`). Emits `BUY` only on upward cross, `SELL` only on downward cross, and `HOLD` otherwise.
+    2. **EMA Trend**: Trend-following strategy comparing close price to EMA (`ema_period`). Emits `BUY` when close > EMA, `SELL` when close < EMA, `HOLD` when close == EMA.
+    3. **Momentum**: Rate-of-change momentum over `lookback` periods. Emits `BUY` on positive momentum, `SELL` on negative momentum, `HOLD` on zero momentum.
+    4. **Mean Reversion**: Rolling Z-score against `lookback` mean and standard deviation ($ddof=1$). Emits `BUY` on oversold ($z \le -\text{threshold}$), `SELL` on overbought ($z \ge \text{threshold}$), `HOLD` inside band. Safely handles zero standard deviation.
+  - **Zero Look-Ahead Bias**: Signals at observation $t$ use only observations $i \le t$. Future price perturbations do not alter past signals.
+  - **Clean Decoupling**: Strategies emit strictly `BUY`, `SELL`, `HOLD` directives; portfolio accounting is delegated to the Step 8 `BacktestingEngine`.
+  - Added endpoints:
+    - `POST /market/{asset}/strategy/signals`: Returns timestamped signal series and indicator values.
+    - `POST /market/{asset}/strategy/backtest`: End-to-end backtesting through Step 8 engine with equity curve, performance metrics, and Buy & Hold benchmark.
+  - Created 40 comprehensive unit and integration tests in `backend/tests/test_strategies.py`.
+  - 150/150 total tests passing; live verification passed across NVDA, BTC/USD, and XAU/USD.
 
 
 ---

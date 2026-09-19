@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 class AlphaVantageBaseException(Exception):
     """Base exception for market data ingestion errors."""
@@ -182,6 +182,39 @@ class InvalidBacktestParameterError(AlphaVantageBaseException):
             message=message,
             status_code=400,
             error_type="INVALID_BACKTEST_PARAMETER",
+            details=details
+        )
+
+
+# Step 9: Trading Strategy Exceptions
+class UnsupportedStrategyError(AlphaVantageBaseException):
+    """Raised when an unrecognized strategy identifier is requested."""
+    def __init__(
+        self,
+        strategy: str,
+        supported_strategies: Optional[List[str]] = None,
+        details: Optional[Dict[str, Any]] = None
+    ):
+        supported = supported_strategies or ["sma_crossover", "ema_trend", "momentum", "mean_reversion"]
+        super().__init__(
+            message=f"Unsupported strategy '{strategy}'. Supported strategies: {', '.join(supported)}.",
+            status_code=400,
+            error_type="UNSUPPORTED_STRATEGY",
+            details=details or {"strategy": strategy, "supported_strategies": supported}
+        )
+
+
+class InvalidStrategyParameterError(AlphaVantageBaseException):
+    """Raised when strategy parameters are invalid, negative, or violate mathematical constraints."""
+    def __init__(
+        self,
+        message: str = "Invalid strategy parameter supplied.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INVALID_STRATEGY_PARAMETER",
             details=details
         )
 

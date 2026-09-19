@@ -246,17 +246,60 @@ For performance evaluation, each backtest simulates an identical baseline Buy-an
 
 ---
 
+## Four Quantitative Trading Strategies
+
+Quantexa implements four canonical quantitative trading strategies conforming to a modular strategy interface. All strategies generate discrete, generic signals (`BUY`, `SELL`, `HOLD`) and are decoupled from portfolio accounting, which is handled exclusively by the Step 8 `BacktestingEngine`.
+
+### 1. SMA Crossover Strategy
+- **Parameters**: `short_period` ($\ge 1$, default: 20), `long_period` ($\ge 2$, default: 50, where `short_period < long_period`).
+- **Signal Logic**:
+  - **`BUY`**: Emitted if and only if the short SMA crosses strictly from $\le$ long SMA to $>$ long SMA:
+    $$\text{SMA}_{\text{short}, t-1} \le \text{SMA}_{\text{long}, t-1} \quad \text{and} \quad \text{SMA}_{\text{short}, t} > \text{SMA}_{\text{long}, t}$$
+  - **`SELL`**: Emitted if and only if the short SMA crosses strictly from $\ge$ long SMA to $<$ long SMA:
+    $$\text{SMA}_{\text{short}, t-1} \ge \text{SMA}_{\text{long}, t-1} \quad \text{and} \quad \text{SMA}_{\text{short}, t} < \text{SMA}_{\text{long}, t}$$
+  - **`HOLD`**: In all other conditions, including when short SMA remains above or below long SMA without crossing.
+
+### 2. EMA Trend Strategy
+- **Parameter**: `ema_period` ($\ge 1$, default: 20).
+- **Signal Logic**:
+  - **`BUY`**: When close price exceeds the current EMA ($\text{Close}_t > \text{EMA}_t$).
+  - **`SELL`**: When close price falls below the current EMA ($\text{Close}_t < \text{EMA}_t$).
+  - **`HOLD`**: When close price equals the current EMA ($\text{Close}_t = \text{EMA}_t$) or prior to EMA warmup.
+
+### 3. Momentum Strategy
+- **Parameter**: `lookback` ($\ge 1$, default: 10).
+- **Metric**:
+  $$\text{Momentum}_t = \frac{\text{Close}_t}{\text{Close}_{t - \text{lookback}}} - 1$$
+- **Signal Logic**:
+  - **`BUY`**: $\text{Momentum}_t > 0$ (positive price velocity).
+  - **`SELL`**: $\text{Momentum}_t < 0$ (negative price velocity).
+  - **`HOLD`**: $\text{Momentum}_t = 0$ or observations before the lookback window.
+
+### 4. Mean Reversion Strategy
+- **Parameters**: `lookback` ($\ge 2$, default: 20), `entry_threshold` ($> 0.0$, default: 1.0).
+- **Metric**:
+  $$z_t = \frac{\text{Close}_t - \mu_{t, \text{lookback}}}{s_{t, \text{lookback}}}$$
+  Where $\mu_t$ is rolling arithmetic mean and $s_t$ is rolling sample standard deviation ($ddof = 1$). If $s_t = 0.0$, $z_t = 0.0$ safely.
+- **Signal Logic**:
+  - **`BUY`**: $z_t \le -\text{entry\_threshold}$ (oversold deviation from rolling mean).
+  - **`SELL`**: $z_t \ge \text{entry\_threshold}$ (overbought deviation from rolling mean).
+  - **`HOLD`**: $-\text{entry\_threshold} < z_t < \text{entry\_threshold}$ or insufficient warmup window.
+
+---
+
 ## Summary of Quantitative Invariants
 
 | Invariant | Implementation Mechanism |
 | :--- | :--- |
-| **No Look-Ahead Bias** | Signal at $t$ executes at $t+1$ at $P_{t+1}$; running peak and rolling slices depend strictly on past data. |
+| **No Look-Ahead Bias** | Signal at $t$ executes at $t+1$ at $P_{t+1}$; running peak and rolling slices depend strictly on past data ($i \le t$). |
 | **Capital Conservation** | Fee-inclusive position sizing guarantees $\text{Cash} \ge 0$ at all times; no leverage or shorting. |
 | **Symmetric Transaction Costs** | Configurable fee percentage applied on both entry (`BUY`) and exit (`SELL`). |
+| **Discrete Signal Interface** | Strategies emit only `BUY`, `SELL`, `HOLD`; portfolio accounting is delegated to BacktestingEngine. |
 | **Missing Value Safety** | Explicit `None` propagation; never interpolated or zero-filled. |
 | **Bessel's Correction** | Sample variance denominator is $m - 1$, preventing sample bias. |
-| **Zero Variance Protection** | Safely evaluates to `None` if $\sigma = 0.0$ or denominator evaluates to zero. |
+| **Zero Variance Protection** | Safely evaluates to `None` or `0.0` if $\sigma = 0.0$ or denominator evaluates to zero. |
 | **Stationary Returns Only** | Correlation is calculated on daily return series, never on non-stationary raw prices. |
 | **Strict Date Alignment** | Overlapping inner-join on UTC dates; zero forward-filling across market closures. |
 | **Multi-Asset Compatibility** | Uniform mathematical definitions applied across Equities, Cryptocurrencies, and Commodities. |
+
 

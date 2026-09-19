@@ -20,6 +20,9 @@ from app.models.schemas import (
     RollingCorrelationResponse,
     BacktestRequest,
     BacktestResponse,
+    StrategySignalsResponse,
+    StrategyBacktestRequest,
+    StrategyBacktestResponse,
 )
 from app.services.cache_manager import cache_manager
 from app.services.twelve_data import twelve_data_service
@@ -29,6 +32,7 @@ from app.services.risk_metrics import risk_metrics_service
 from app.services.risk_analysis import risk_analysis_service
 from app.services.correlation import correlation_service
 from app.services.backtesting import backtesting_service
+from app.services.strategies import strategy_service
 
 
 from app.utils.exceptions import (
@@ -963,6 +967,123 @@ class MarketDataService:
             symbol=symbol,
             clean_points=clean_resp.data,
             request=request
+        )
+
+    # ----------------------------------------------------------------------
+    # Step 9: Quantitative Trading Strategies Integration
+    # ----------------------------------------------------------------------
+    async def get_strategy_signals(
+        self,
+        asset_identifier: str,
+        strategy: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        refresh: bool = False
+    ) -> StrategySignalsResponse:
+        """
+        Generates timestamped trading signals (BUY, SELL, HOLD) for a requested strategy
+        (sma_crossover, ema_trend, momentum, mean_reversion) on cleaned market data.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+        clean_points = clean_resp.data
+
+        signals, active_params = strategy_service.generate_signals(
+            strategy_name=strategy,
+            clean_points=clean_points,
+            params=parameters
+        )
+
+        start_date = clean_points[0].timestamp if clean_points else None
+        end_date = clean_points[-1].timestamp if clean_points else None
+
+        return StrategySignalsResponse(
+            asset=asset_name,
+            symbol=symbol,
+            strategy=strategy,
+            parameters=active_params,
+            source=clean_resp.source,
+            data_status="calculated",
+            observation_count=len(signals),
+            start_date=start_date,
+            end_date=end_date,
+            signals=signals
+        )
+
+    async def run_strategy_backtest(
+        self,
+        asset_identifier: str,
+        request: StrategyBacktestRequest,
+        refresh: bool = False
+    ) -> StrategyBacktestResponse:
+        """
+        Generates strategy signals and executes them causally through the Step 8
+        strategy-agnostic backtesting engine using Next-Observation Execution.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+        clean_points = clean_resp.data
+
+        # 1. Generate strategy signals
+        strat_signals, active_params = strategy_service.generate_signals(
+            strategy_name=request.strategy,
+            clean_points=clean_points,
+            params=request.parameters
+        )
+
+        # 2. Convert to generic Step 8 SignalPoint list
+        generic_signals = strategy_service.to_generic_signals(strat_signals)
+
+        # 3. Resolve allocation
+        alloc = request.allocation_fraction if request.allocation_fraction is not None else request.allocation
+
+        # 4. Simulate through Step 8 backtesting engine
+        backtest_req = BacktestRequest(
+            initial_capital=request.initial_capital,
+            transaction_cost_rate=request.transaction_cost_rate,
+            allocation_fraction=alloc,
+            signals=generic_signals
+        )
+
+        bt_res = backtesting_service.run_simulation(
+            asset=asset_name,
+            symbol=symbol,
+            clean_points=clean_points,
+            request=backtest_req,
+            source=clean_resp.source
+        )
+
+        return StrategyBacktestResponse(
+            asset=asset_name,
+            symbol=symbol,
+            strategy=request.strategy,
+            parameters=active_params,
+            source=bt_res.source,
+            data_status="calculated",
+            execution_model=bt_res.execution_model,
+            initial_capital=bt_res.performance.initial_capital,
+            final_portfolio_value=bt_res.performance.final_portfolio_value,
+            total_return=bt_res.performance.total_return_pct,
+            total_trades=bt_res.performance.total_trades,
+            number_of_trades=bt_res.performance.total_trades,
+            max_drawdown=bt_res.performance.maximum_drawdown_pct or 0.0,
+            maximum_drawdown=bt_res.performance.maximum_drawdown_pct or 0.0,
+            equity_curve=bt_res.equity_curve,
+            trade_history=bt_res.trade_history,
+            benchmark=bt_res.benchmark,
+            benchmark_buy_and_hold=bt_res.benchmark,
+            performance=bt_res.performance
         )
 
 market_data_service = MarketDataService()

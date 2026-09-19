@@ -19,6 +19,10 @@ from app.models.schemas import (
     RollingCorrelationResponse,
     BacktestRequest,
     BacktestResponse,
+    StrategySignalsRequest,
+    StrategySignalsResponse,
+    StrategyBacktestRequest,
+    StrategyBacktestResponse,
 )
 from app.services.market_data import market_data_service
 from app.services.cache_manager import cache_manager
@@ -28,6 +32,8 @@ from app.utils.exceptions import (
     InvalidRiskAnalysisParameterError,
     InvalidCorrelationWindowError,
     InvalidBacktestParameterError,
+    UnsupportedStrategyError,
+    InvalidStrategyParameterError,
 )
 
 router = APIRouter()
@@ -487,6 +493,60 @@ async def run_market_backtest(
     at Close price P_{t+1}, strictly preventing look-ahead bias.
     """
     return await market_data_service.run_backtest(
+        asset_identifier=asset,
+        request=request,
+        refresh=refresh or False
+    )
+
+
+# ------------------------------------------------------------------------------
+# Step 9: Quantitative Trading Strategies Endpoints
+# ------------------------------------------------------------------------------
+@router.post(
+    "/market/{asset}/strategy/signals",
+    response_model=StrategySignalsResponse,
+    summary="Generate Trading Strategy Signals",
+    tags=["Trading Strategies"]
+)
+async def get_market_strategy_signals(
+    asset: str = Path(..., description="Target asset identifier: 'nvidia', 'bitcoin', or 'gold'"),
+    request: StrategySignalsRequest = ...,
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Generates timestamped trading signals (BUY, SELL, HOLD) for a requested strategy
+    (sma_crossover, ema_trend, momentum, mean_reversion) on cleaned historical market data.
+    """
+    return await market_data_service.get_strategy_signals(
+        asset_identifier=asset,
+        strategy=request.strategy,
+        parameters=request.parameters,
+        refresh=refresh or False
+    )
+
+
+@router.post(
+    "/market/{asset}/strategy/backtest",
+    response_model=StrategyBacktestResponse,
+    summary="Backtest a Trading Strategy",
+    tags=["Trading Strategies"]
+)
+async def run_market_strategy_backtest(
+    asset: str = Path(..., description="Target asset identifier: 'nvidia', 'bitcoin', or 'gold'"),
+    request: StrategyBacktestRequest = ...,
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Generates strategy signals and executes them causally through the Step 8
+    strategy-agnostic backtesting engine with Next-Observation Execution.
+    """
+    return await market_data_service.run_strategy_backtest(
         asset_identifier=asset,
         request=request,
         refresh=refresh or False

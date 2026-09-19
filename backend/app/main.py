@@ -101,7 +101,9 @@ def create_app() -> FastAPI:
                 "risk_analysis": "/market/{asset}/risk-analysis",
                 "correlation": "/market/correlation",
                 "rolling_correlation": "/market/correlation/rolling",
-                "backtest": "/market/{asset}/backtest"
+                "backtest": "/market/{asset}/backtest",
+                "strategy_signals": "/market/{asset}/strategy/signals",
+                "strategy_backtest": "/market/{asset}/strategy/backtest"
             },
 
 

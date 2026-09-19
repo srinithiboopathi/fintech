@@ -658,11 +658,168 @@ A signal generated at historical observation $t$ executes at observation $t+1$ a
 
 ---
 
+## 13. Strategy Signals Generation
+
+### `POST /market/{asset}/strategy/signals`
+
+Generates deterministic, chronological trading signals (`BUY`, `SELL`, `HOLD`) for a specified asset using one of the four supported quantitative strategies:
+1. `sma_crossover`: Dual Simple Moving Average Crossover (`short_period`, `long_period`)
+2. `ema_trend`: Exponential Moving Average Trend Following (`ema_period`)
+3. `momentum`: Lookback Rate-of-Change Momentum (`lookback`)
+4. `mean_reversion`: Rolling Z-Score Mean Reversion (`lookback`, `entry_threshold`)
+
+Strictly adheres to **Zero Look-Ahead Bias**: signals at observation $t$ use only observations $i \le t$.
+
+#### Path Parameters
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :---: | :--- |
+| `asset` | `string` | Yes | Target asset identifier: `nvidia`, `bitcoin`, `gold` |
+
+#### Request Body (`application/json`)
+
+```json
+{
+  "strategy": "mean_reversion",
+  "parameters": {
+    "lookback": 20,
+    "entry_threshold": 1.0
+  }
+}
+```
+
+| Field | Type | Required | Default | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `strategy` | `string` | Yes | - | Strategy name: `sma_crossover`, `ema_trend`, `momentum`, `mean_reversion` |
+| `parameters` | `dict` | No | `{}` | Strategy-specific parameter overrides |
+
+#### Supported Strategy Parameters
+
+- **`sma_crossover`**:
+  - `short_period` (int $\ge 1$, default 20)
+  - `long_period` (int $\ge 2$, default 50, must satisfy `short_period < long_period`)
+- **`ema_trend`**:
+  - `ema_period` (int $\ge 1$, default 20)
+- **`momentum`**:
+  - `lookback` (int $\ge 1$, default 10)
+- **`mean_reversion`**:
+  - `lookback` (int $\ge 2$, default 20)
+  - `entry_threshold` (float $> 0.0$, default 1.0)
+
+#### Response: `200 OK`
+```json
+{
+  "asset": "NVIDIA",
+  "symbol": "NVDA",
+  "strategy": "mean_reversion",
+  "parameters": {
+    "lookback": 20,
+    "entry_threshold": 1.0
+  },
+  "source": "Twelve Data",
+  "data_status": "calculated",
+  "observation_count": 30,
+  "start_date": "2026-08-07T00:00:00Z",
+  "end_date": "2026-09-18T00:00:00Z",
+  "signals": [
+    {
+      "timestamp": "2026-09-18T00:00:00Z",
+      "close": 115.59,
+      "signal": "HOLD",
+      "indicators": {
+        "z_score": 0.421,
+        "rolling_mean": 114.20,
+        "rolling_std": 3.30
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 14. Strategy End-to-End Backtest
+
+### `POST /market/{asset}/strategy/backtest`
+
+Runs end-to-end simulation by dispatching the specified strategy, extracting chronological `BUY`/`SELL`/`HOLD` signals, and causally executing them through the Step 8 `BacktestingEngine`.
+
+**Causal Guarantee**:
+Signals generated at observation $t$ execute at observation $t+1$ at close price $P_{t+1}$ with transaction costs applied and cash balances tracked.
+
+#### Request Body (`application/json`)
+
+```json
+{
+  "strategy": "ema_trend",
+  "parameters": {
+    "ema_period": 20
+  },
+  "initial_capital": 100000.0,
+  "transaction_cost_rate": 0.001,
+  "allocation": 1.0
+}
+```
+
+| Field | Type | Required | Default | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `strategy` | `string` | Yes | - | Strategy name (`sma_crossover`, `ema_trend`, `momentum`, `mean_reversion`) |
+| `parameters` | `dict` | No | `{}` | Strategy parameters |
+| `initial_capital` | `float` | No | `100000.0` | Initial capital ($> 0$) |
+| `transaction_cost_rate` | `float` | No | `0.001` | Transaction fee rate ($\ge 0$) |
+| `allocation` | `float` | No | `1.0` | Portfolio cash allocation fraction in $(0, 1]$ |
+
+#### Response: `200 OK`
+```json
+{
+  "asset": "NVIDIA",
+  "symbol": "NVDA",
+  "strategy": "ema_trend",
+  "parameters": {
+    "ema_period": 20
+  },
+  "source": "Twelve Data",
+  "data_status": "calculated",
+  "execution_model": "Next-Observation (Signal at t executes at t+1 at P_{t+1})",
+  "initial_capital": 100000.0,
+  "final_portfolio_value": 94476.56,
+  "total_return": -5.52,
+  "total_trades": 3,
+  "number_of_trades": 3,
+  "max_drawdown": -5.52,
+  "maximum_drawdown": -5.52,
+  "equity_curve": [...],
+  "trade_history": [...],
+  "benchmark_buy_and_hold": {
+    "benchmark_name": "Buy & Hold",
+    "initial_value": 100000.0,
+    "final_value": 99150.0,
+    "total_return_pct": -0.85,
+    "equity_curve": [...]
+  },
+  "performance": {
+    "initial_capital": 100000.0,
+    "final_portfolio_value": 94476.56,
+    "total_return_pct": -5.52,
+    "total_trades": 3,
+    "winning_trades": 0,
+    "losing_trades": 2,
+    "win_rate_pct": 0.0,
+    "total_fees_paid": 293.44,
+    "maximum_drawdown_pct": -5.52,
+    "maximum_drawdown_timestamp": "2026-09-18T00:00:00Z",
+    "sharpe_ratio": -1.24
+  }
+}
+```
+
+---
+
 ## Common Error Codes
 
 | Status Code | Reason | Cause |
 | :--- | :--- | :--- |
-| `400 Bad Request` | Invalid Parameter | Provided parameter (`initial_capital`, `transaction_cost_rate`, `allocation_fraction`, `signals`, or `window`) is invalid or out of bounds. |
+| `400 Bad Request` | Invalid Parameter | Provided parameter (`initial_capital`, `transaction_cost_rate`, `allocation`, `short_period`, `long_period`, `lookback`, etc.) is invalid or out of bounds. |
 | `404 Not Found` | Unsupported Asset | Requested asset identifier is not mapped to NVDA, BTC/USD, or XAU/USD. |
 | `502 Bad Gateway` | Upstream API Error | Upstream market data provider failed or rate limit exceeded with no valid cache. |
 | `504 Gateway Timeout` | Provider Timeout | Upstream provider failed to respond within connection timeout window. |

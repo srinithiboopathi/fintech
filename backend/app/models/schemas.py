@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 class HistoricalPoint(BaseModel):
     """Normalized OHLCV data point."""
@@ -337,7 +337,20 @@ class BenchmarkResults(BaseModel):
     initial_value: float = Field(..., description="Initial capital allocated to benchmark")
     final_value: float = Field(..., description="Final equity value of benchmark")
     total_return_pct: float = Field(..., description="Total percentage return of benchmark")
+    initial_capital: Optional[float] = Field(None, description="Alias for initial_value")
+    final_portfolio_value: Optional[float] = Field(None, description="Alias for final_value")
+    total_return: Optional[float] = Field(None, description="Alias for total_return_pct")
     equity_curve: List[BenchmarkPoint] = Field(default_factory=list, description="Benchmark historical equity curve")
+
+    @model_validator(mode="after")
+    def populate_benchmark_aliases(self) -> "BenchmarkResults":
+        if self.initial_capital is None:
+            self.initial_capital = self.initial_value
+        if self.final_portfolio_value is None:
+            self.final_portfolio_value = self.final_value
+        if self.total_return is None:
+            self.total_return = self.total_return_pct
+        return self
 
 
 class BacktestPerformance(BaseModel):
@@ -369,6 +382,101 @@ class BacktestResponse(BaseModel):
     benchmark: BenchmarkResults = Field(..., description="Buy-and-Hold benchmark comparison")
     trade_history: List[TradeRecord] = Field(default_factory=list, description="Chronological log of executed trades")
     equity_curve: List[PortfolioObservation] = Field(default_factory=list, description="Daily portfolio equity and accounting series")
+
+
+# ==============================================================================
+# Step 9: Quantitative Trading Strategies Models
+# ==============================================================================
+
+class StrategySignalPoint(BaseModel):
+    """Timestamped strategy signal with underlying market and indicator references."""
+    timestamp: str = Field(..., description="ISO-8601 UTC timestamp of historical observation")
+    signal: str = Field(..., description="Directive generated at time t: 'BUY', 'SELL', or 'HOLD'")
+    close: float = Field(..., description="Close price at observation time t")
+    indicators: Dict[str, Optional[float]] = Field(
+        default_factory=dict,
+        description="Reference indicator values at time t (e.g. short_sma, long_sma, ema, momentum, z_score)"
+    )
+
+
+class StrategySignalsRequest(BaseModel):
+    """Request payload for strategy signal generation."""
+    strategy: str = Field(
+        ...,
+        description="Strategy identifier: 'sma_crossover', 'ema_trend', 'momentum', 'mean_reversion'"
+    )
+    parameters: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Strategy-specific parameter overrides"
+    )
+
+
+class StrategySignalsResponse(BaseModel):
+    """Response payload for strategy signal generation."""
+    asset: str = Field(..., description="Asset display name")
+    symbol: str = Field(..., description="Market ticker symbol")
+    strategy: str = Field(..., description="Executed strategy name")
+    parameters: Dict[str, Any] = Field(..., description="Active strategy parameters used")
+    source: str = Field(default="Twelve Data", description="Underlying market data provider")
+    data_status: str = Field(default="calculated", description="Processing status")
+    observation_count: int = Field(..., description="Total historical observations analyzed")
+    start_date: Optional[str] = Field(None, description="Earliest observation date")
+    end_date: Optional[str] = Field(None, description="Latest observation date")
+    signals: List[StrategySignalPoint] = Field(..., description="Chronological strategy signals")
+
+
+class StrategyBacktestRequest(BaseModel):
+    """Request payload to simulate a strategy through the Step 8 backtesting engine."""
+    strategy: str = Field(
+        ...,
+        description="Strategy identifier: 'sma_crossover', 'ema_trend', 'momentum', 'mean_reversion'"
+    )
+    parameters: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Strategy-specific parameter overrides"
+    )
+    initial_capital: Optional[float] = Field(
+        100000.0,
+        description="Initial investment capital in base currency (must be > 0, default 100,000.0)"
+    )
+    transaction_cost_rate: Optional[float] = Field(
+        0.001,
+        description="Per-trade transaction cost percentage fraction (must be >= 0, default 0.001 = 0.1%)"
+    )
+    allocation: Optional[float] = Field(
+        1.0,
+        description="Fraction of available cash to invest on BUY (must be in (0, 1], default 1.0 = 100%)"
+    )
+    allocation_fraction: Optional[float] = Field(
+        None,
+        description="Fraction of available cash to invest on BUY (alias for allocation)"
+    )
+
+
+class StrategyBacktestResponse(BaseModel):
+    """Comprehensive backtest simulation response for a strategy."""
+    asset: str = Field(..., description="Asset display name")
+    symbol: str = Field(..., description="Market ticker symbol")
+    strategy: str = Field(..., description="Executed strategy identifier")
+    parameters: Dict[str, Any] = Field(..., description="Strategy configuration parameters")
+    source: str = Field(default="Twelve Data", description="Market data provider source")
+    data_status: str = Field(default="calculated", description="Data processing status")
+    execution_model: str = Field(
+        default="Next-Observation (Signal at t executes at t+1 at P_{t+1})",
+        description="Causal order execution assumption"
+    )
+    initial_capital: float = Field(..., description="Initial investment capital")
+    final_portfolio_value: float = Field(..., description="Terminal portfolio value")
+    total_return: float = Field(..., description="Cumulative total return percentage fraction")
+    total_trades: int = Field(..., description="Total executed trade count")
+    number_of_trades: int = Field(..., description="Total executed trade count (alias)")
+    max_drawdown: float = Field(..., description="Maximum drawdown percentage fraction")
+    maximum_drawdown: float = Field(..., description="Maximum drawdown percentage fraction (alias)")
+    equity_curve: List[PortfolioObservation] = Field(default_factory=list, description="Daily portfolio equity and accounting series")
+    trade_history: List[TradeRecord] = Field(default_factory=list, description="Chronological log of executed trades")
+    benchmark: BenchmarkResults = Field(..., description="Buy-and-Hold benchmark comparison")
+    benchmark_buy_and_hold: BenchmarkResults = Field(..., description="Buy & Hold benchmark comparison")
+    performance: BacktestPerformance = Field(..., description="Executive performance and risk statistics")
 
 
 

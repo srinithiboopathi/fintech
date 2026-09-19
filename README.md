@@ -3,8 +3,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2.6+-e92063.svg)](https://docs.pydantic.dev/)
-[![Pytest Tests](https://img.shields.io/badge/tests-110%20passed-success.svg)](#testing-instructions)
-[![Status](https://img.shields.io/badge/Milestone-Step%208%20Complete-emerald.svg)](#current-project-status)
+[![Pytest Tests](https://img.shields.io/badge/tests-150%20passed-success.svg)](#testing-instructions)
+[![Status](https://img.shields.io/badge/Milestone-Step%209%20Complete-emerald.svg)](#current-project-status)
 
 ---
 
@@ -85,6 +85,14 @@ Computes dynamic causal co-movement across rolling windows ($W \ge 2$) with stri
 
 ### Strategy-Agnostic Backtesting Engine
 Simulates historical portfolio performance using generic trading signals (`BUY`, `SELL`, `HOLD`) with **Next-Observation Execution** ($t \to t+1$ at $P_{t+1}$), fee-inclusive position sizing, cash conservation ($\text{Cash} \ge 0$), trade audit trails, and automated Buy-and-Hold benchmark comparison.
+
+### Four Quantitative Trading Strategies
+1. **SMA Crossover**: Dual moving average crossover (`short_period`, `long_period`).
+2. **EMA Trend**: Trend-following strategy comparing close price to EMA (`ema_period`).
+3. **Momentum**: Rate-of-change momentum over configurable lookback window (`lookback`).
+4. **Mean Reversion**: Rolling Z-score against lookback mean and standard deviation ($ddof=1$) with configurable trigger threshold (`entry_threshold`).
+
+All strategies generate discrete signals (`BUY`, `SELL`, `HOLD`), strictly enforce zero look-ahead bias, and seamlessly plug into the Step 8 simulation engine.
 
 ---
 
@@ -256,8 +264,9 @@ pytest backend/tests -v
 - `backend/tests/test_risk_analysis.py` — Sharpe Ratio, Maximum Drawdown, running peak, error handling (12 tests)
 - `backend/tests/test_correlation.py` — Pearson matrix, date alignment, rolling series, HTTP 400 validation (19 tests)
 - `backend/tests/test_backtesting.py` — Backtesting engine, execution causality, accounting, fee modeling, benchmarks (26 tests)
+- `backend/tests/test_strategies.py` — SMA Crossover, EMA Trend, Momentum, Mean Reversion, Signals & Backtest APIs (40 tests)
 
-**Total: 110 automated tests (100% passing)**.
+**Total: 150 automated tests (100% passing)**.
 
 ---
 
@@ -274,7 +283,8 @@ pytest backend/tests -v
 | **Step 6: Sharpe Ratio & Drawdown** | **COMPLETE** | Annualized Sharpe Ratio and running peak Maximum Drawdown |
 | **Step 7: Correlation & Rolling Correlation** | **COMPLETE** | Multi-asset Pearson correlation matrix and rolling correlation series |
 | **Step 8: Strategy Backtesting Engine** | **COMPLETE** | Causal Next-Observation execution, accounting, fees, Buy & Hold benchmark |
-| **Step 9+: Systematic Trading Strategies** | **NOT STARTED** | Reserved for subsequent milestone |
+| **Step 9: Four Trading Strategies** | **COMPLETE** | SMA Crossover, EMA Trend, Momentum, Mean Reversion with zero look-ahead bias |
+| **Step 10+: Robustness & Market Regimes** | **NOT STARTED** | Reserved for subsequent milestone |
 
 
 ---
