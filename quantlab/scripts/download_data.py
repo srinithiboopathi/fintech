@@ -1,104 +1,161 @@
 """
-QuantLab Data Downloader & Generator Script
-Downloads or generates high-fidelity multi-year historical market data for Gold, Bitcoin, and NVIDIA.
+QuantLab Market Data Downloader Script
+Downloads real historical daily market data for Gold (GC=F), Bitcoin (BTC-USD),
+and NVIDIA (NVDA) from Yahoo Finance using the yfinance library.
 """
 
 import os
-import math
-import random
 from datetime import datetime, timedelta
+import pandas as pd
+import yfinance as yf
 
+# Base directory paths for datasets
 DATASET_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "datasets"))
 RAW_DIR = os.path.join(DATASET_ROOT, "raw")
 
+# Asset configuration mapping tickers to output destinations
 ASSETS = {
     "gold": {
         "symbol": "GC=F",
-        "start_price": 1850.0,
-        "drift": 0.0003,
-        "volatility": 0.009,
         "subfolder": "gold",
-        "filename": "gold_raw.csv"
+        "filename": "gold_raw.csv",
+        "name": "Gold"
     },
     "bitcoin": {
         "symbol": "BTC-USD",
-        "start_price": 29000.0,
-        "drift": 0.0008,
-        "volatility": 0.035,
         "subfolder": "bitcoin",
-        "filename": "bitcoin_raw.csv"
+        "filename": "bitcoin_raw.csv",
+        "name": "Bitcoin"
     },
     "nvidia": {
         "symbol": "NVDA",
-        "start_price": 13.0, # split-adjusted 2021
-        "drift": 0.0016,
-        "volatility": 0.024,
         "subfolder": "nvidia",
-        "filename": "nvidia_raw.csv"
+        "filename": "nvidia_raw.csv",
+        "name": "NVIDIA"
     }
 }
 
-def generate_synthetic_ohlcv(start_date, num_days, start_price, drift, volatility, seed=42):
-    random.seed(seed)
-    current_date = start_date
-    current_close = start_price
-    records = []
+START_DATE = "2021-01-01"
 
-    for _ in range(num_days):
-        # Skip weekends for traditional equities & commodities
-        # (Crypto can include weekends, but calendar alignment is handled in clean_data)
-        if current_date.weekday() >= 5:
-            current_date += timedelta(days=1)
-            continue
 
-        ret = random.gauss(drift, volatility)
-        open_price = current_close * (1 + random.gauss(0, volatility * 0.3))
-        close_price = current_close * math.exp(ret)
-        high_price = max(open_price, close_price) * (1 + abs(random.gauss(0, volatility * 0.4)))
-        low_price = min(open_price, close_price) * (1 - abs(random.gauss(0, volatility * 0.4)))
-        volume = int(abs(random.gauss(10000000, 3000000)))
+def download_and_save_asset_data(symbol: str, output_path: str, start_date: str, end_date: str) -> bool:
+    """
+    Downloads historical daily market data for a given symbol using yfinance,
+    cleans and validates the data, and saves it to a CSV file.
 
-        records.append({
-            "Date": current_date.strftime("%Y-%m-%d"),
-            "Open": round(open_price, 2),
-            "High": round(high_price, 2),
-            "Low": round(low_price, 2),
-            "Close": round(close_price, 2),
-            "Adj Close": round(close_price, 2),
-            "Volume": volume
-        })
+    Required CSV format: Date,Open,High,Low,Close,Adj Close,Volume
+    """
+    print(f"\nDownloading data for {symbol} ({start_date} to {end_date})...")
 
-        current_close = close_price
-        current_date += timedelta(days=1)
+    # Download historical daily data from Yahoo Finance via yfinance
+    # auto_adjust=False ensures both 'Close' and 'Adj Close' are retrieved
+    df = yf.download(
+        tickers=symbol,
+        start=start_date,
+        end=end_date,
+        interval="1d",
+        progress=False,
+        auto_adjust=False
+    )
 
-    return records
+    if df is None or df.empty:
+        raise ValueError(f"No data returned for ticker {symbol}.")
+
+    # Handle MultiIndex columns if returned by newer yfinance versions
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    # Ensure Date is a regular column (reset index if Date is in the DatetimeIndex)
+    if "Date" not in df.columns:
+        df = df.reset_index()
+        # Rename Datetime or index column to Date if needed
+        if "Date" not in df.columns:
+            if "Datetime" in df.columns:
+                df = df.rename(columns={"Datetime": "Date"})
+            elif "index" in df.columns:
+                df = df.rename(columns={"index": "Date"})
+
+    # Convert Date column to standard YYYY-MM-DD string format
+    df["Date"] = pd.to_datetime(df["Date"]).dt.strftime("%Y-%m-%d")
+
+    # If 'Adj Close' column is missing, fallback to 'Close'
+    if "Adj Close" not in df.columns and "Close" in df.columns:
+        df["Adj Close"] = df["Close"]
+
+    # If 'Volume' column is missing, default to 0
+    if "Volume" not in df.columns:
+        df["Volume"] = 0
+
+    # Ensure numeric columns are properly converted
+    numeric_cols = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Remove rows with missing OHLC values
+    df = df.dropna(subset=["Open", "High", "Low", "Close"])
+
+    if df.empty:
+        raise ValueError(f"All downloaded records contained missing OHLC values for {symbol}.")
+
+    # Ensure Volume is formatted as an integer
+    df["Volume"] = df["Volume"].fillna(0).astype("int64")
+
+    # Remove duplicate dates (keeping the most recent entry)
+    df = df.drop_duplicates(subset=["Date"], keep="last")
+
+    # Sort records chronologically in ascending order
+    df = df.sort_values(by="Date", ascending=True)
+
+    # Select and order the exact required columns
+    columns_order = ["Date", "Open", "High", "Low", "Close", "Adj Close", "Volume"]
+    df = df[columns_order]
+
+    # Create destination output directory automatically if it does not exist
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    # Write cleaned dataframe to CSV
+    df.to_csv(output_path, index=False)
+
+    # Print a clear summary
+    num_rows = len(df)
+    first_date = df["Date"].iloc[0]
+    last_date = df["Date"].iloc[-1]
+    print(f"✓ Successfully processed {symbol}:")
+    print(f"  - Number of rows: {num_rows}")
+    print(f"  - First date:     {first_date}")
+    print(f"  - Last date:      {last_date}")
+    print(f"  - Output path:    {output_path}")
+
+    return True
+
 
 def main():
-    print("=== QuantLab Market Data Downloader / Ingestor ===")
-    start_date = datetime(2021, 1, 4)
-    num_days = 1260 # ~5 years
+    print("=" * 60)
+    print("QuantLab Real Historical Market Data Downloader (yfinance)")
+    print("=" * 60)
+
+    # End date: upper bound set to include today's latest available trading session
+    end_date = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     for key, info in ASSETS.items():
+        symbol = info["symbol"]
         out_dir = os.path.join(RAW_DIR, info["subfolder"])
-        os.makedirs(out_dir, exist_ok=True)
         file_path = os.path.join(out_dir, info["filename"])
 
-        seed = 101 if key == "gold" else (202 if key == "bitcoin" else 303)
-        records = generate_synthetic_ohlcv(
-            start_date=start_date,
-            num_days=num_days,
-            start_price=info["start_price"],
-            drift=info["drift"],
-            volatility=info["volatility"],
-            seed=seed
-        )
+        try:
+            download_and_save_asset_data(
+                symbol=symbol,
+                output_path=file_path,
+                start_date=START_DATE,
+                end_date=end_date
+            )
+        except Exception as e:
+            print(f"✗ Failed to download data for {symbol} ({info['name']}): {e}")
+            print("  Continuing with remaining assets...\n")
 
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write("Date,Open,High,Low,Close,Adj Close,Volume\n")
-            for r in records:
-                f.write(f"{r['Date']},{r['Open']},{r['High']},{r['Low']},{r['Close']},{r['Adj Close']},{r['Volume']}\n")
+    print("\nData download process completed.")
 
-        print(f"Ingested {len(records)} raw bars for {info['symbol']} -> {file_path}")
 
 if __name__ == "__main__":
     main()
