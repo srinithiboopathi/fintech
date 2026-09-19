@@ -1,3 +1,4 @@
+import math
 import re
 from datetime import datetime, timezone
 from typing import Optional, Any
@@ -13,10 +14,15 @@ from app.models.schemas import (
     DataSummaryResponse,
     IndicatorsResponse,
     RiskMetricsResponse,
+    RiskAnalysisResponse,
 )
 from app.services.market_data import market_data_service
 from app.services.cache_manager import cache_manager
-from app.utils.exceptions import InvalidIndicatorPeriodError, InvalidVolatilityPeriodError
+from app.utils.exceptions import (
+    InvalidIndicatorPeriodError,
+    InvalidVolatilityPeriodError,
+    InvalidRiskAnalysisParameterError,
+)
 
 router = APIRouter()
 
@@ -65,6 +71,36 @@ def validate_volatility_period(val: Any) -> int:
         raise InvalidVolatilityPeriodError()
 
     return period
+
+def validate_risk_analysis_params(rf_val: Any, af_val: Any) -> tuple[float, int]:
+    """
+    Validates risk analysis query parameters:
+    - risk_free_rate: non-negative float >= 0.0
+    - annualization_factor: positive integer >= 1
+    Raises InvalidRiskAnalysisParameterError (HTTP 400).
+    """
+    if rf_val is None:
+        rf = 0.0
+    else:
+        rf_str = str(rf_val).strip()
+        try:
+            rf = float(rf_str)
+            if rf < 0.0 or not math.isfinite(rf):
+                raise InvalidRiskAnalysisParameterError()
+        except (ValueError, TypeError):
+            raise InvalidRiskAnalysisParameterError()
+
+    if af_val is None:
+        af = 252
+    else:
+        af_str = str(af_val).strip()
+        if not re.fullmatch(r"\d+", af_str):
+            raise InvalidRiskAnalysisParameterError()
+        af = int(af_str)
+        if af < 1:
+            raise InvalidRiskAnalysisParameterError()
+
+    return rf, af
 
 
 
@@ -284,6 +320,45 @@ async def get_market_risk_metrics(
     return await market_data_service.get_risk_metrics(
         asset_identifier=asset,
         volatility_period=valid_vol_period,
+        refresh=refresh or False
+    )
+
+@router.get(
+    "/market/{asset}/risk-analysis",
+    response_model=RiskAnalysisResponse,
+    summary="Get Quantitative Risk Analysis (Sharpe Ratio & Maximum Drawdown)",
+    tags=["Risk & Quantitative Metrics"]
+)
+async def get_market_risk_analysis(
+    asset: str = Path(..., description="Asset name or symbol (e.g. 'nvidia', 'bitcoin', 'gold')"),
+    risk_free_rate: Optional[str] = Query(
+        "0.0",
+        description="Annualized risk-free rate percentage (non-negative number, default 0.0)"
+    ),
+    annualization_factor: Optional[str] = Query(
+        "252",
+        description="Annualization trading periods per year (positive integer >= 1, default 252)"
+    ),
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Calculates annualized Sharpe Ratio and Maximum Drawdown analysis
+    for NVIDIA, Bitcoin, or Gold strictly from Step 3 cleaned historical data.
+
+    Query Parameters:
+    - risk_free_rate: Non-negative float (default: 0.0)
+    - annualization_factor: Positive integer >= 1 (default: 252)
+    - refresh: Optional boolean to force fresh fetch and calculation
+    """
+    valid_rf, valid_af = validate_risk_analysis_params(risk_free_rate, annualization_factor)
+
+    return await market_data_service.get_risk_analysis(
+        asset_identifier=asset,
+        risk_free_rate=valid_rf,
+        annualization_factor=valid_af,
         refresh=refresh or False
     )
 

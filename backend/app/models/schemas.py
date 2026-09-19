@@ -200,3 +200,37 @@ class RiskMetricsResponse(BaseModel):
     data: List[RiskMetricPoint]
 
 
+# ==============================================================================
+# Step 6: Sharpe Ratio and Maximum Drawdown Models
+# ==============================================================================
+
+class DrawdownPoint(BaseModel):
+    """Historical drawdown observation with running peak."""
+    timestamp: str = Field(..., description="ISO-8601 UTC timestamp")
+    close: float = Field(..., description="Closing price for the observation")
+    running_peak: float = Field(..., description="Running peak closing price observed up to this point")
+    drawdown_pct: float = Field(..., description="Percentage drawdown from running peak ((close / peak) - 1) * 100")
+
+
+class RiskAnalysisSummary(BaseModel):
+    """Executive summary of annualized Sharpe Ratio and Maximum Drawdown analysis."""
+    risk_free_rate: float = Field(..., description="Annual risk-free rate percentage used")
+    annualization_factor: int = Field(..., description="Trading periods per year used for annualization (default 252)")
+    valid_return_count: int = Field(..., description="Number of valid daily return observations")
+    sharpe_ratio: Optional[float] = Field(None, description="Annualized Sharpe ratio (null if fewer than 2 returns or zero std dev)")
+    maximum_drawdown_pct: Optional[float] = Field(None, description="Maximum historical peak-to-trough percentage drawdown")
+    maximum_drawdown_timestamp: Optional[str] = Field(None, description="ISO-8601 timestamp where maximum drawdown occurred")
+    latest_close: Optional[float] = Field(None, description="Latest clean closing price in the series")
+
+
+class RiskAnalysisResponse(BaseModel):
+    """Complete annualized Sharpe Ratio and Maximum Drawdown response payload."""
+    asset: str = Field(..., description="Asset display name")
+    symbol: str = Field(..., description="Market asset symbol")
+    source: str = Field(..., description="Underlying market data provider source")
+    data_status: str = Field("calculated", description="Data processing status")
+    summary: RiskAnalysisSummary = Field(..., description="Executive risk and performance analysis summary")
+    drawdown_series: List[DrawdownPoint] = Field(default_factory=list, description="Historical drawdown and running peak time series")
+
+
+

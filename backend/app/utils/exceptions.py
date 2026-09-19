@@ -140,4 +140,19 @@ class InvalidVolatilityPeriodError(AlphaVantageBaseException):
             details=details
         )
 
+# Step 6: Risk Analysis Exceptions
+class InvalidRiskAnalysisParameterError(AlphaVantageBaseException):
+    """Raised when an invalid risk analysis parameter is supplied (e.g. negative risk_free_rate, non-integer or < 1 annualization_factor)."""
+    def __init__(
+        self,
+        message: str = "Invalid risk analysis parameter: risk_free_rate must be a non-negative number and annualization_factor must be a positive integer greater than or equal to 1.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INVALID_PARAMETER",
+            details=details
+        )
+
 

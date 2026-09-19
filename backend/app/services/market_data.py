@@ -15,12 +15,14 @@ from app.models.schemas import (
     DataSummaryResponse,
     IndicatorsResponse,
     RiskMetricsResponse,
+    RiskAnalysisResponse,
 )
 from app.services.cache_manager import cache_manager
 from app.services.twelve_data import twelve_data_service
 from app.services.data_cleaner import data_cleaning_service
 from app.services.indicators import indicator_service
 from app.services.risk_metrics import risk_metrics_service
+from app.services.risk_analysis import risk_analysis_service
 
 
 from app.utils.exceptions import (
@@ -799,6 +801,47 @@ class MarketDataService:
             data_status="calculated",
             summary=summary,
             data=metric_points
+        )
+
+    # ----------------------------------------------------------------------
+    # Step 6: Risk Analysis (Annualized Sharpe Ratio & Maximum Drawdown)
+    # ----------------------------------------------------------------------
+    async def get_risk_analysis(
+        self,
+        asset_identifier: str,
+        risk_free_rate: float = 0.0,
+        annualization_factor: int = 252,
+        refresh: bool = False
+    ) -> RiskAnalysisResponse:
+        """
+        Calculates annualized Sharpe Ratio and Maximum Drawdown analysis
+        for NVIDIA, Bitcoin, or Gold strictly from Step 3 cleaned historical data.
+        Reuses cached clean data to avoid redundant provider calls.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        # Fetch clean historical market data (cached from Step 3)
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+
+        # Compute Sharpe ratio and Maximum Drawdown analysis
+        summary, drawdown_series = risk_analysis_service.compute_risk_analysis(
+            clean_points=clean_resp.data,
+            risk_free_rate=risk_free_rate,
+            annualization_factor=annualization_factor
+        )
+
+        return RiskAnalysisResponse(
+            asset=asset_name,
+            symbol=symbol,
+            source=clean_resp.source,
+            data_status="calculated",
+            summary=summary,
+            drawdown_series=drawdown_series
         )
 
 market_data_service = MarketDataService()

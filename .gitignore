@@ -41,6 +41,12 @@ htmlcov/
 data/cache/
 backend/data/cache/
 
+# Datasets (protect from accidental large file commits)
+datasets/*.csv
+datasets/*.parquet
+datasets/*.json
+!datasets/README.md
+
 # IDE & OS
 .vscode/
 .idea/
