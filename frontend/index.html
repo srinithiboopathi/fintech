@@ -3,15 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Market Data Viewer | Alpha Vantage Ingestion</title>
+  <title>QUANTEXA — Quantitative Multi-Asset Financial Intelligence Platform</title>
+
   <!-- Google Fonts: Outfit & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js 4.4 UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -21,537 +26,1026 @@
             mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
-            slate: {
-              850: '#111827',
-              900: '#0b0f19',
-              950: '#05070d',
+            brand: {
+              50: '#eef2ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
             }
           }
         }
       }
     }
   </script>
-  <style>
-    body {
-      background: radial-gradient(circle at 50% 0%, #172554 0%, #0b0f19 50%, #05070d 100%);
-      min-height: 100vh;
-      color: #f1f5f9;
-    }
-    .glass-panel {
-      background: rgba(17, 24, 39, 0.7);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    }
-    .glass-card {
-      background: rgba(30, 41, 59, 0.5);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .glass-card:hover {
-      border-color: rgba(255, 255, 255, 0.12);
-      transform: translateY(-1px);
-    }
-    .badge-status {
-      box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-    }
-    /* Custom subtle scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(100, 116, 139, 0.4);
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(148, 163, 184, 0.6);
-    }
-  </style>
+
+  <!-- Quantexa Master Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body class="p-4 md:p-8">
+<body class="text-slate-100 flex h-screen overflow-hidden">
 
-  <div class="max-w-7xl mx-auto space-y-6">
+  <!-- Mobile Drawer Overlay -->
+  <div id="mobile-overlay" class="fixed inset-0 mobile-overlay z-40 hidden lg:hidden"></div>
 
-    <!-- Top Navigation & Header -->
-    <header class="glass-panel rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-      <div class="space-y-1">
+  <!-- SIDEBAR NAVIGATION -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 glass-panel border-r border-slate-800 z-50 flex flex-col justify-between transition-transform duration-300 -translate-x-full lg:translate-x-0 lg:static">
+    <div>
+      <!-- Brand Header -->
+      <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
             <i data-lucide="activity" class="w-5 h-5 text-white"></i>
           </div>
           <div>
-            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-              Market Data Ingestion Viewer
-              <span class="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Step 1 Verified
-              </span>
-            </h1>
-            <p class="text-xs text-slate-400">
-              Quantitative Multi-Asset Platform &bull; Real Alpha Vantage Live Data Feed
-            </p>
+            <span class="text-lg font-black tracking-wider text-white">QUANTEXA</span>
+            <div class="text-[9px] font-mono text-indigo-400 font-semibold tracking-widest uppercase">FINTECH LAB</div>
           </div>
         </div>
       </div>
 
-      <div class="flex items-center flex-wrap gap-3">
-        <!-- Live System Status Badge -->
-        <div id="backend-status-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/50 text-xs font-medium text-slate-300">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span id="backend-status-text">Backend Online</span>
+      <!-- Navigation Links -->
+      <nav class="p-3 space-y-1 text-xs font-medium">
+        <button data-view="overview" class="nav-link active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="layout-dashboard" class="w-4 h-4 text-indigo-400"></i>
+          <span>Overview</span>
+        </button>
+        <button data-view="market" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="line-chart" class="w-4 h-4 text-cyan-400"></i>
+          <span>Market Analysis</span>
+        </button>
+        <button data-view="indicators" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i>
+          <span>Indicators (SMA/EMA)</span>
+        </button>
+        <button data-view="risk" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="shield-alert" class="w-4 h-4 text-rose-400"></i>
+          <span>Returns & Volatility</span>
+        </button>
+        <button data-view="correlation" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="grid" class="w-4 h-4 text-emerald-400"></i>
+          <span>Correlation Matrix</span>
+        </button>
+        <button data-view="strategies" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="zap" class="w-4 h-4 text-purple-400"></i>
+          <span>Strategy Lab</span>
+        </button>
+        <button data-view="backtest" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="play-circle" class="w-4 h-4 text-blue-400"></i>
+          <span>Backtesting Studio</span>
+        </button>
+        <button data-view="comparison" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="bar-chart-2" class="w-4 h-4 text-teal-400"></i>
+          <span>Strategy Comparison</span>
+        </button>
+        <button data-view="robustness" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="layers" class="w-4 h-4 text-orange-400"></i>
+          <span>Robustness Grid</span>
+        </button>
+        <button data-view="regimes" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="compass" class="w-4 h-4 text-yellow-400"></i>
+          <span>Market Regimes</span>
+        </button>
+        <button data-view="system" class="nav-link w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/40">
+          <i data-lucide="server" class="w-4 h-4 text-slate-400"></i>
+          <span>System Status</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Footer System Pill -->
+    <div class="p-4 border-t border-slate-800/80">
+      <div id="backend-status-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-xs font-mono text-slate-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="backend-status-text">Connecting...</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN VIEWPORT -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+    <!-- TOPBAR -->
+    <header class="glass-panel sticky top-0 z-30 border-b border-slate-800/80 px-4 md:px-8 py-3.5 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <button id="btn-mobile-menu" class="lg:hidden p-2 rounded-xl bg-slate-800/60 text-slate-300 hover:text-white">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        <div>
+          <div class="text-sm font-bold text-white flex items-center gap-2">
+            Quantitative Platform
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+              v1.0 • Step 12
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 hidden sm:block">
+            Multi-Asset Financial Intelligence & Causal Execution Engine
+          </p>
+        </div>
+      </div>
+
+      <!-- Topbar Asset Selection Pills & Global Refresh -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="flex items-center rounded-xl bg-slate-900/80 p-1 border border-slate-800">
+          <button data-asset="nvidia" class="asset-pill active px-3 py-1 rounded-lg text-xs font-semibold text-slate-300 hover:text-white transition-all">
+            NVDA
+          </button>
+          <button data-asset="bitcoin" class="asset-pill px-3 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all">
+            BTC
+          </button>
+          <button data-asset="gold" class="asset-pill px-3 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all">
+            XAU
+          </button>
         </div>
 
-        <!-- Last Updated -->
-        <div class="text-xs text-slate-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/40 border border-slate-700/30 font-mono">
-          <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-500"></i>
-          <span>Updated:</span>
-          <span id="last-updated-text" class="text-slate-200">--:--:--</span>
-        </div>
-
-        <!-- Refresh Button -->
-        <button id="btn-refresh" onclick="refreshCurrentAsset()" class="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50">
-          <i id="refresh-icon" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-          <span>Refresh Data</span>
+        <button id="btn-global-refresh" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-all active:scale-95">
+          <i id="global-refresh-icon" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Refresh</span>
         </button>
       </div>
     </header>
 
-    <!-- Asset Selection Tabs -->
-    <div class="glass-panel rounded-2xl p-2 flex items-center gap-2">
-      <button onclick="switchTab('nvidia')" id="tab-nvidia" class="tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-semibold transition-all bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-        <i data-lucide="cpu" class="w-4 h-4"></i>
-        <span>NVIDIA (NVDA)</span>
-        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Equity</span>
-      </button>
+    <!-- CONTENT BODY -->
+    <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
 
-      <button onclick="switchTab('bitcoin')" id="tab-bitcoin" class="tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <i data-lucide="coins" class="w-4 h-4"></i>
-        <span>Bitcoin (BTC)</span>
-        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">Crypto</span>
-      </button>
+      <!-- ========================================== -->
+      <!-- VIEW: OVERVIEW HUD                         -->
+      <!-- ========================================== -->
+      <section id="view-overview" class="view-section space-y-6">
+        <div id="overview-error-container"></div>
 
-      <button onclick="switchTab('gold')" id="tab-gold" class="tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
-        <i data-lucide="sparkles" class="w-4 h-4"></i>
-        <span>Gold (XAU)</span>
-        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300">Commodity</span>
-      </button>
-    </div>
-
-    <!-- Error Alert Banner (Hidden by default) -->
-    <div id="error-banner" class="hidden glass-panel rounded-2xl p-4 border-rose-500/30 bg-rose-950/30 flex items-start gap-3 text-rose-300">
-      <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400 shrink-0 mt-0.5"></i>
-      <div class="space-y-1 text-xs">
-        <div id="error-title" class="font-bold text-rose-200">Data Fetch Warning</div>
-        <div id="error-message" class="text-rose-300/80 leading-relaxed font-mono"></div>
-      </div>
-    </div>
-
-    <!-- SECTION 1: LATEST DATA HUD -->
-    <div class="space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-          <i data-lucide="zap" class="w-4 h-4 text-blue-400"></i>
-          Latest Market Data
-        </h2>
-        <div class="flex items-center gap-2">
-          <span class="text-xs px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
-            Source: Alpha Vantage
-          </span>
-          <span id="badge-data-status" class="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
-            Status: Latest Available
-          </span>
-        </div>
-      </div>
-
-      <!-- Hero Price & Stats Grid -->
-      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        <!-- Main Price Card (Spans 2 columns) -->
-        <div class="glass-panel col-span-2 rounded-2xl p-5 border border-slate-700/50 flex flex-col justify-between">
-          <div class="flex items-center justify-between text-xs text-slate-400">
-            <span id="hero-asset-name" class="font-medium text-slate-200">Asset</span>
-            <span id="hero-asset-symbol" class="font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">SYMBOL</span>
-          </div>
-          <div class="my-3">
-            <div id="hero-price" class="text-3xl lg:text-4xl font-extrabold font-mono text-white tracking-tight">
-              $--.--
+        <!-- 3-Asset Ticker Strip -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div onclick="window.quantexaApp.selectAsset('nvidia')" class="glass-card rounded-2xl p-4 border border-slate-800 cursor-pointer hover:border-emerald-500/40">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span class="font-bold text-slate-200 flex items-center gap-2">
+                <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i> NVIDIA (NVDA)
+              </span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Equity</span>
             </div>
-            <div id="hero-change-container" class="mt-1 flex items-center gap-1.5 text-xs font-mono text-slate-400">
-              <span id="hero-change">--</span>
-              <span id="hero-change-pct">(--%)</span>
+            <div class="mt-2 flex items-baseline justify-between">
+              <div id="ticker-price-nvidia" class="text-xl font-bold font-mono text-white">$---.--</div>
+              <div id="ticker-change-nvidia" class="text-[11px] font-mono text-slate-400">--%</div>
             </div>
           </div>
-          <div class="text-[11px] text-slate-500 flex items-center gap-1">
-            <i data-lucide="calendar" class="w-3 h-3"></i>
-            <span id="hero-timestamp">UTC Timestamp: --</span>
+
+          <div onclick="window.quantexaApp.selectAsset('bitcoin')" class="glass-card rounded-2xl p-4 border border-slate-800 cursor-pointer hover:border-amber-500/40">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span class="font-bold text-slate-200 flex items-center gap-2">
+                <i data-lucide="coins" class="w-4 h-4 text-amber-400"></i> Bitcoin (BTC/USD)
+              </span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">Crypto</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between">
+              <div id="ticker-price-bitcoin" class="text-xl font-bold font-mono text-white">$---.--</div>
+              <div id="ticker-change-bitcoin" class="text-[11px] font-mono text-slate-400">--%</div>
+            </div>
+          </div>
+
+          <div onclick="window.quantexaApp.selectAsset('gold')" class="glass-card rounded-2xl p-4 border border-slate-800 cursor-pointer hover:border-yellow-500/40">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span class="font-bold text-slate-200 flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-yellow-400"></i> Gold Bullion (XAU/USD)
+              </span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300">Commodity</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between">
+              <div id="ticker-price-gold" class="text-xl font-bold font-mono text-white">$---.--</div>
+              <div id="ticker-change-gold" class="text-[11px] font-mono text-slate-400">--%</div>
+            </div>
           </div>
         </div>
 
-        <!-- Metric: Open -->
-        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
-          <span class="text-xs text-slate-400 font-medium">Open</span>
-          <div id="metric-open" class="text-lg font-bold font-mono text-slate-200 mt-2">$0.00</div>
-          <span class="text-[10px] text-slate-500">Session Open</span>
+        <!-- Hero Price & KPI Grid -->
+        <div id="overview-kpi-container" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <!-- Main Hero Price Card (Spans 2 columns) -->
+          <div class="glass-panel col-span-2 rounded-2xl p-6 border border-slate-800 flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span id="overview-hero-name" class="font-bold text-slate-200 text-sm">Asset</span>
+              <span id="overview-hero-symbol" class="font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">SYMBOL</span>
+            </div>
+            <div class="my-4">
+              <div id="overview-hero-price" class="text-4xl lg:text-5xl font-black font-mono text-white tracking-tight">
+                $---.--
+              </div>
+              <div id="overview-hero-change" class="mt-1 text-xs font-mono font-semibold text-slate-400">
+                --
+              </div>
+            </div>
+            <div class="text-[11px] text-slate-500 font-mono" id="overview-hero-timestamp">
+              UTC Timestamp: --
+            </div>
+          </div>
+
+          <!-- KPI: Open & Close -->
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-xs text-slate-400 font-medium">Session Open</span>
+            <div id="kpi-open" class="text-lg font-bold font-mono text-slate-200 mt-2">$0.00</div>
+            <span class="text-[10px] text-slate-500">First Daily Bar</span>
+          </div>
+
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-xs text-slate-400 font-medium">Session Close</span>
+            <div id="kpi-close" class="text-lg font-bold font-mono text-slate-200 mt-2">$0.00</div>
+            <span class="text-[10px] text-slate-500">Latest Traded</span>
+          </div>
+
+          <!-- KPI: High & Low -->
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-xs text-slate-400 font-medium">Session High</span>
+            <div id="kpi-high" class="text-lg font-bold font-mono text-emerald-400 mt-2">$0.00</div>
+            <span class="text-[10px] text-slate-500">Peak Bar</span>
+          </div>
+
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-xs text-slate-400 font-medium">Session Low</span>
+            <div id="kpi-low" class="text-lg font-bold font-mono text-rose-400 mt-2">$0.00</div>
+            <span class="text-[10px] text-slate-500">Trough Bar</span>
+          </div>
+
+          <!-- KPI: Volume -->
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-xs text-slate-400 font-medium">Volume</span>
+            <div id="kpi-volume" class="text-base font-bold font-mono text-slate-200 mt-2">--</div>
+            <span class="text-[10px] text-slate-500">Units Traded</span>
+          </div>
+
+          <!-- KPI: Sharpe Ratio -->
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-xs text-slate-400 font-medium">Sharpe Ratio (Ann.)</span>
+            <div id="kpi-sharpe" class="text-lg font-bold font-mono text-indigo-400 mt-2">--</div>
+            <span class="text-[10px] text-slate-500">Rf = 0.0%</span>
+          </div>
+
+          <!-- KPI: Max Drawdown -->
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-xs text-slate-400 font-medium">Max Drawdown</span>
+            <div id="kpi-drawdown" class="text-lg font-bold font-mono text-rose-400 mt-2">--%</div>
+            <span class="text-[10px] text-slate-500">Peak-to-Trough</span>
+          </div>
+
+          <!-- KPI: Current Market Regime -->
+          <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+            <span class="text-xs text-slate-400 font-medium">Market Regime</span>
+            <div class="mt-2">
+              <span id="kpi-regime" class="text-xs font-bold font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                ANALYZING...
+              </span>
+            </div>
+            <span class="text-[10px] text-slate-500">Step 11 Trend & Vol</span>
+          </div>
         </div>
 
-        <!-- Metric: High -->
-        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
-          <span class="text-xs text-slate-400 font-medium">High</span>
-          <div id="metric-high" class="text-lg font-bold font-mono text-emerald-400 mt-2">$0.00</div>
-          <span class="text-[10px] text-slate-500">Session High</span>
+        <!-- Data Hygiene & Ingestion Health Summary -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+          <div class="flex items-center justify-between border-b border-slate-800/80 pb-3 mb-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+              Executive Data Hygiene & Verification
+            </h3>
+            <span id="hygiene-source" class="text-xs font-mono px-2.5 py-0.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              Twelve Data
+            </span>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
+            <div>
+              <div class="text-slate-400 font-sans text-[11px]">Total Time Series Bars:</div>
+              <div id="hygiene-total-records" class="text-sm font-bold text-slate-200 mt-1">-- Bars</div>
+            </div>
+            <div>
+              <div class="text-slate-400 font-sans text-[11px]">Valid OHLC Integrity:</div>
+              <div id="hygiene-valid-ohlc" class="text-sm font-bold text-emerald-400 mt-1">-- Valid</div>
+            </div>
+            <div>
+              <div class="text-slate-400 font-sans text-[11px]">Timestamp Order:</div>
+              <div class="text-sm font-bold text-indigo-400 mt-1">UTC Chronological</div>
+            </div>
+            <div>
+              <div class="text-slate-400 font-sans text-[11px]">Look-Ahead Bias:</div>
+              <div class="text-sm font-bold text-emerald-400 mt-1">Strictly Zero (Causal)</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW: MARKET ANALYSIS                      -->
+      <!-- ========================================== -->
+      <section id="view-market" class="view-section space-y-6 hidden">
+        <div id="market-error-container"></div>
+
+        <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="line-chart" class="w-4 h-4 text-cyan-400"></i>
+                Interactive Price & Indicator Trajectory
+              </h2>
+              <p class="text-xs text-slate-400">
+                Authoritative daily prices with causal SMA 50 and EMA 20 overlays
+              </p>
+            </div>
+          </div>
+
+          <!-- Chart Canvas -->
+          <div class="relative h-80 sm:h-96 w-full">
+            <canvas id="market-price-chart"></canvas>
+          </div>
         </div>
 
-        <!-- Metric: Low -->
-        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
-          <span class="text-xs text-slate-400 font-medium">Low</span>
-          <div id="metric-low" class="text-lg font-bold font-mono text-rose-400 mt-2">$0.00</div>
-          <span class="text-[10px] text-slate-500">Session Low</span>
+        <!-- Historical OHLC Table -->
+        <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Cleaned Historical Price Feed (Latest 30 Bars)
+            </h3>
+            <span class="text-xs font-mono text-slate-400">Normalized UTC Daily</span>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/60">
+                <tr>
+                  <th scope="col" class="py-3 px-4">Date (UTC)</th>
+                  <th scope="col" class="py-3 px-4 text-right">Open</th>
+                  <th scope="col" class="py-3 px-4 text-right">High</th>
+                  <th scope="col" class="py-3 px-4 text-right">Low</th>
+                  <th scope="col" class="py-3 px-4 text-right">Close</th>
+                  <th scope="col" class="py-3 px-4 text-right">Volume</th>
+                </tr>
+              </thead>
+              <tbody id="market-historical-tbody" class="divide-y divide-slate-800/60 font-mono">
+                <tr><td colspan="6" class="py-6 text-center text-slate-500 font-sans">Loading price data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW: TECHNICAL INDICATORS                 -->
+      <!-- ========================================== -->
+      <section id="view-indicators" class="view-section space-y-6 hidden">
+        <div id="indicators-error-container"></div>
+
+        <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i>
+                Technical Indicator Inspector
+              </h2>
+              <p class="text-xs text-slate-400">
+                Authoritative backend moving averages (SMA & EMA) computed with zero look-ahead bias
+              </p>
+            </div>
+
+            <!-- Parameters Bar -->
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-1.5 text-xs font-mono">
+                <span class="text-slate-400">SMA:</span>
+                <input id="input-indicator-sma" type="number" min="5" max="200" value="50" class="glass-input w-16 px-2 py-1 rounded text-center text-xs font-bold text-amber-400">
+              </div>
+              <div class="flex items-center gap-1.5 text-xs font-mono">
+                <span class="text-slate-400">EMA:</span>
+                <input id="input-indicator-ema" type="number" min="5" max="100" value="20" class="glass-input w-16 px-2 py-1 rounded text-center text-xs font-bold text-purple-400">
+              </div>
+              <button onclick="window.quantexaApp.loadIndicators(true)" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">
+                Apply
+              </button>
+            </div>
+          </div>
+
+          <!-- Indicator Values Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+            <div class="glass-card rounded-xl p-3 border border-slate-800">
+              <div class="text-[11px] text-slate-400">Latest Close:</div>
+              <div id="ind-val-close" class="text-base font-bold font-mono text-white mt-1">--</div>
+            </div>
+            <div class="glass-card rounded-xl p-3 border border-slate-800">
+              <div class="text-[11px] text-slate-400">Current SMA:</div>
+              <div id="ind-val-sma" class="text-base font-bold font-mono text-amber-400 mt-1">--</div>
+            </div>
+            <div class="glass-card rounded-xl p-3 border border-slate-800">
+              <div class="text-[11px] text-slate-400">Current EMA:</div>
+              <div id="ind-val-ema" class="text-base font-bold font-mono text-purple-400 mt-1">--</div>
+            </div>
+            <div class="glass-card rounded-xl p-3 border border-slate-800">
+              <div class="text-[11px] text-slate-400">Trend Spread:</div>
+              <div id="ind-val-spread" class="text-base font-bold font-mono text-slate-300 mt-1">--</div>
+            </div>
+          </div>
+
+          <!-- Indicators Chart Canvas -->
+          <div class="relative h-80 sm:h-96 w-full pt-4">
+            <canvas id="indicators-chart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW: RETURNS & VOLATILITY                 -->
+      <!-- ========================================== -->
+      <section id="view-risk" class="view-section space-y-6 hidden">
+        <div id="risk-error-container"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Daily Returns Bar Chart -->
+          <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="bar-chart-2" class="w-4 h-4 text-emerald-400"></i>
+                Daily Percentage Returns
+              </h3>
+              <p class="text-xs text-slate-400">
+                Log/Percentage price changes per observation bar
+              </p>
+            </div>
+            <div class="relative h-64 w-full">
+              <canvas id="returns-bar-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Rolling Volatility Line Chart -->
+          <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="activity" class="w-4 h-4 text-amber-400"></i>
+                Rolling Sample Volatility (ddof = 1)
+              </h3>
+              <p class="text-xs text-slate-400">
+                20-day rolling sample standard deviation of percentage returns
+              </p>
+            </div>
+            <div class="relative h-64 w-full">
+              <canvas id="volatility-line-chart"></canvas>
+            </div>
+          </div>
         </div>
 
-        <!-- Metric: Close -->
-        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
-          <span class="text-xs text-slate-400 font-medium">Close</span>
-          <div id="metric-close" class="text-lg font-bold font-mono text-slate-200 mt-2">$0.00</div>
-          <span class="text-[10px] text-slate-500">Latest Traded</span>
-        </div>
+        <!-- Maximum Drawdown Underwater Chart -->
+        <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="trending-down" class="w-4 h-4 text-rose-400"></i>
+                Maximum Drawdown & Peak-to-Trough Profile
+              </h3>
+              <p class="text-xs text-slate-400">
+                Causal running-peak drawdown time series with trough date identification
+              </p>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-mono">
+              <div>
+                <span class="text-slate-400">Sharpe Ratio:</span>
+                <span id="risk-sharpe-val" class="font-bold text-indigo-400 ml-1">--</span>
+              </div>
+              <div>
+                <span class="text-slate-400">Max Drawdown:</span>
+                <span id="risk-max-dd-val" class="font-bold text-rose-400 ml-1">--%</span>
+              </div>
+            </div>
+          </div>
 
-        <!-- Metric: Volume -->
-        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
-          <span class="text-xs text-slate-400 font-medium">Volume</span>
-          <div id="metric-volume" class="text-lg font-bold font-mono text-slate-200 mt-2">--</div>
-          <span class="text-[10px] text-slate-500">Total Traded</span>
-        </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono pt-2">
+            <div class="glass-card rounded-xl p-3">
+              <span class="text-slate-400 text-[11px]">Peak Date:</span>
+              <div id="risk-peak-date" class="font-bold text-slate-200 mt-1">--</div>
+            </div>
+            <div class="glass-card rounded-xl p-3">
+              <span class="text-slate-400 text-[11px]">Trough Date:</span>
+              <div id="risk-trough-date" class="font-bold text-rose-400 mt-1">--</div>
+            </div>
+            <div class="glass-card rounded-xl p-3">
+              <span class="text-slate-400 text-[11px]">Annualization Factor:</span>
+              <div class="font-bold text-slate-200 mt-1">252 (Daily Trading)</div>
+            </div>
+            <div class="glass-card rounded-xl p-3">
+              <span class="text-slate-400 text-[11px]">Risk-Free Rate:</span>
+              <div class="font-bold text-slate-200 mt-1">0.00% Baseline</div>
+            </div>
+          </div>
 
-        <!-- Metric: Status -->
-        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
-          <span class="text-xs text-slate-400 font-medium">Status</span>
-          <div id="metric-status" class="text-xs font-bold font-mono text-indigo-400 mt-2">Latest Available</div>
-          <span class="text-[10px] text-slate-500">Provider State</span>
+          <div class="relative h-64 w-full pt-4">
+            <canvas id="risk-drawdown-chart"></canvas>
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- SECTION 2: HISTORICAL DATA TABLE -->
-    <div class="glass-panel rounded-2xl p-6 space-y-4">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <!-- ========================================== -->
+      <!-- VIEW: CORRELATION MATRIX                   -->
+      <!-- ========================================== -->
+      <section id="view-correlation" class="view-section space-y-6 hidden">
+        <div id="correlation-error-container"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Pearson Matrix -->
+          <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+            <div>
+              <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="grid" class="w-4 h-4 text-emerald-400"></i>
+                Pairwise Pearson Correlation Heatmap
+              </h2>
+              <p class="text-xs text-slate-400">
+                Symmetric cross-asset return correlation matrix across synchronized daily bars
+              </p>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800 pt-2">
+              <table class="w-full text-xs">
+                <thead class="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/60">
+                  <tr>
+                    <th class="py-3 px-4 text-left">Asset</th>
+                    <th class="py-3 px-4 text-center">NVDA</th>
+                    <th class="py-3 px-4 text-center">BTC/USD</th>
+                    <th class="py-3 px-4 text-center">XAU/USD</th>
+                  </tr>
+                </thead>
+                <tbody id="correlation-matrix-tbody" class="divide-y divide-slate-800/60">
+                  <tr><td colspan="4" class="py-6 text-center text-slate-500 font-sans">Calculating correlation matrix...</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="text-[11px] text-slate-400 flex items-center justify-between pt-2">
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500/40 inline-block"></span> Positive Correlation</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-blue-500/40 inline-block"></span> Identity (1.00)</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-rose-500/40 inline-block"></span> Inverse / Diversifying</span>
+            </div>
+          </div>
+
+          <!-- Rolling Correlation Controls & Series -->
+          <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  <i data-lucide="git-commit" class="w-4 h-4 text-indigo-400"></i>
+                  Rolling Pair Correlation
+                </h3>
+                <p class="text-xs text-slate-400">
+                  Time-varying correlation dynamics
+                </p>
+              </div>
+
+              <!-- Pair & Window Selectors -->
+              <div class="flex items-center gap-2">
+                <select id="select-corr-pair" onchange="window.quantexaApp.loadCorrelation(false)" class="glass-input px-2.5 py-1 rounded text-xs font-mono font-medium">
+                  <option value="nvidia:bitcoin">NVDA ↔ BTC</option>
+                  <option value="nvidia:gold">NVDA ↔ XAU</option>
+                  <option value="bitcoin:gold">BTC ↔ XAU</option>
+                </select>
+                <select id="select-corr-window" onchange="window.quantexaApp.loadCorrelation(false)" class="glass-input px-2.5 py-1 rounded text-xs font-mono font-medium">
+                  <option value="10">10 Days</option>
+                  <option value="20">20 Days</option>
+                  <option value="30" selected>30 Days</option>
+                  <option value="60">60 Days</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="relative h-64 w-full pt-2">
+              <canvas id="rolling-corr-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW: STRATEGY LAB                         -->
+      <!-- ========================================== -->
+      <section id="view-strategies" class="view-section space-y-6 hidden">
+        <div id="strategies-error-container"></div>
+
         <div>
           <h2 class="text-base font-bold text-white flex items-center gap-2">
-            <i data-lucide="table" class="w-4 h-4 text-emerald-400"></i>
-            Historical OHLCV Market Data
+            <i data-lucide="zap" class="w-4 h-4 text-purple-400"></i>
+            Quantitative Strategy Lab & Real-Time Signals
           </h2>
           <p class="text-xs text-slate-400">
-            Standardized UTC Daily Time Series &bull; Displaying latest chronological records first
+            Real live signals generated from causal Step 9 strategies. Zero fake or simulated signals.
           </p>
         </div>
 
-        <div class="flex items-center gap-2">
-          <span id="table-record-count" class="text-xs font-mono text-slate-400 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40">
-            Showing 0 records
-          </span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Card: SMA Crossover -->
+          <div id="strategy-card-sma_crossover" class="glass-panel rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-white">SMA Crossover</span>
+                <span id="signal-badge-sma_crossover" class="px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-slate-800 text-slate-400">--</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Dual simple moving average trend crossover system.</p>
+              <div class="mt-4 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono space-y-1">
+                <div class="text-slate-400">Parameters: <span class="text-indigo-300">Fast: 10, Slow: 30</span></div>
+                <div class="text-slate-400">Reason: <span id="signal-reason-sma_crossover" class="text-slate-200">Evaluating...</span></div>
+                <div id="signal-time-sma_crossover" class="text-[10px] text-slate-500">Timestamp: --</div>
+              </div>
+            </div>
+            <button onclick="window.quantexaApp.switchView('backtest')" class="mt-4 w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-indigo-400 hover:text-white border border-slate-700 text-xs font-semibold transition-all">
+              Configure & Backtest
+            </button>
+          </div>
+
+          <!-- Card: EMA Trend -->
+          <div id="strategy-card-ema_trend" class="glass-panel rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-white">EMA Trend</span>
+                <span id="signal-badge-ema_trend" class="px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-slate-800 text-slate-400">--</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Exponential moving average trend following with weighted lag reduction.</p>
+              <div class="mt-4 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono space-y-1">
+                <div class="text-slate-400">Parameters: <span class="text-indigo-300">Fast: 12, Slow: 26</span></div>
+                <div class="text-slate-400">Reason: <span id="signal-reason-ema_trend" class="text-slate-200">Evaluating...</span></div>
+                <div id="signal-time-ema_trend" class="text-[10px] text-slate-500">Timestamp: --</div>
+              </div>
+            </div>
+            <button onclick="window.quantexaApp.switchView('backtest')" class="mt-4 w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-indigo-400 hover:text-white border border-slate-700 text-xs font-semibold transition-all">
+              Configure & Backtest
+            </button>
+          </div>
+
+          <!-- Card: Momentum -->
+          <div id="strategy-card-momentum" class="glass-panel rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-white">Momentum (ROC)</span>
+                <span id="signal-badge-momentum" class="px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-slate-800 text-slate-400">--</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Rate-of-change momentum strategy measuring lookback relative returns.</p>
+              <div class="mt-4 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono space-y-1">
+                <div class="text-slate-400">Parameters: <span class="text-indigo-300">Lookback: 10, Threshold: 0.0%</span></div>
+                <div class="text-slate-400">Reason: <span id="signal-reason-momentum" class="text-slate-200">Evaluating...</span></div>
+                <div id="signal-time-momentum" class="text-[10px] text-slate-500">Timestamp: --</div>
+              </div>
+            </div>
+            <button onclick="window.quantexaApp.switchView('backtest')" class="mt-4 w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-indigo-400 hover:text-white border border-slate-700 text-xs font-semibold transition-all">
+              Configure & Backtest
+            </button>
+          </div>
+
+          <!-- Card: Mean Reversion -->
+          <div id="strategy-card-mean_reversion" class="glass-panel rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-white">Mean Reversion (Bollinger)</span>
+                <span id="signal-badge-mean_reversion" class="px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-slate-800 text-slate-400">--</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Statistical dispersion strategy trading deviations beyond rolling standard deviation bands.</p>
+              <div class="mt-4 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono space-y-1">
+                <div class="text-slate-400">Parameters: <span class="text-indigo-300">Period: 20, StdDev: 2.0</span></div>
+                <div class="text-slate-400">Reason: <span id="signal-reason-mean_reversion" class="text-slate-200">Evaluating...</span></div>
+                <div id="signal-time-mean_reversion" class="text-[10px] text-slate-500">Timestamp: --</div>
+              </div>
+            </div>
+            <button onclick="window.quantexaApp.switchView('backtest')" class="mt-4 w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-indigo-400 hover:text-white border border-slate-700 text-xs font-semibold transition-all">
+              Configure & Backtest
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Responsive Table Container -->
-      <div class="overflow-x-auto rounded-xl border border-slate-800">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/60">
-            <tr>
-              <th scope="col" class="py-3 px-4">Date (UTC)</th>
-              <th scope="col" class="py-3 px-4 text-right">Open</th>
-              <th scope="col" class="py-3 px-4 text-right">High</th>
-              <th scope="col" class="py-3 px-4 text-right">Low</th>
-              <th scope="col" class="py-3 px-4 text-right">Close</th>
-              <th scope="col" class="py-3 px-4 text-right">Volume</th>
-            </tr>
-          </thead>
-          <tbody id="historical-tbody" class="divide-y divide-slate-800/60 font-mono">
-            <!-- Table rows populated dynamically via JS -->
-            <tr>
-              <td colspan="6" class="py-8 text-center text-slate-500 font-sans">
-                Loading market data from Alpha Vantage...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <!-- ========================================== -->
+      <!-- VIEW: BACKTESTING STUDIO                   -->
+      <!-- ========================================== -->
+      <section id="view-backtest" class="view-section space-y-6 hidden">
+        <div id="backtest-error-container"></div>
 
-      <!-- Table Footer / Load More -->
-      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-        <span class="text-xs text-slate-500">
-          * Prices quoted in USD. Values are verified and normalized directly from Alpha Vantage.
-        </span>
-        <button id="btn-load-more" onclick="loadMoreRecords()" class="hidden px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition-all active:scale-95">
-          Load More (+20 Records)
-        </button>
-      </div>
-    </div>
+        <!-- Backtest Configuration Bar -->
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="play-circle" class="w-4 h-4 text-blue-400"></i>
+                Quantitative Backtesting Studio
+              </h2>
+              <p class="text-xs text-slate-400">
+                Step 8 Causal Next-Observation Execution Engine with real transaction costs
+              </p>
+            </div>
+          </div>
 
-    <!-- Footer Disclaimers -->
-    <footer class="text-center py-4 text-xs text-slate-500 space-y-1">
-      <p>Quantitative Multi-Asset Financial Intelligence & Backtesting Platform &bull; Step 1 Market Ingestion Layer</p>
-      <p>Data Source: Alpha Vantage API &bull; Normalized Timestamps: UTC &bull; Entitlement: Latest Available / Delayed</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div>
+              <label class="block text-slate-400 font-medium mb-1">Strategy</label>
+              <select id="backtest-strat-select" class="glass-input w-full px-3 py-1.5 rounded-xl font-medium">
+                <option value="sma_crossover">SMA Crossover (10/30)</option>
+                <option value="ema_trend">EMA Trend (12/26)</option>
+                <option value="momentum">Momentum (10d)</option>
+                <option value="mean_reversion">Mean Reversion (20d/2σ)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 font-medium mb-1">Initial Capital ($)</label>
+              <input id="backtest-capital" type="number" value="100000" class="glass-input w-full px-3 py-1.5 rounded-xl font-mono">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-medium mb-1">Fee Rate (0.001 = 0.1%)</label>
+              <input id="backtest-fee" type="number" step="0.0005" value="0.001" class="glass-input w-full px-3 py-1.5 rounded-xl font-mono">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-medium mb-1">Allocation Fraction</label>
+              <input id="backtest-allocation" type="number" step="0.1" min="0.1" max="1.0" value="1.0" class="glass-input w-full px-3 py-1.5 rounded-xl font-mono">
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-1">
+            <button onclick="window.quantexaApp.loadBacktest(true)" class="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/25 transition-all">
+              <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <span>Run Causal Backtest</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Backtest Performance Summary Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div class="glass-card rounded-2xl p-4">
+            <span class="text-[11px] text-slate-400">Final Value</span>
+            <div id="bt-final-val" class="text-xl font-bold font-mono text-white mt-1">$---</div>
+          </div>
+          <div class="glass-card rounded-2xl p-4">
+            <span class="text-[11px] text-slate-400">Total Return</span>
+            <div id="bt-total-ret" class="text-xl font-bold font-mono text-emerald-400 mt-1">--%</div>
+          </div>
+          <div class="glass-card rounded-2xl p-4">
+            <span class="text-[11px] text-slate-400">Max Drawdown</span>
+            <div id="bt-max-dd" class="text-xl font-bold font-mono text-rose-400 mt-1">--%</div>
+          </div>
+          <div class="glass-card rounded-2xl p-4">
+            <span class="text-[11px] text-slate-400">Trades Executed</span>
+            <div id="bt-trades-count" class="text-xl font-bold font-mono text-slate-200 mt-1">-- Trades</div>
+          </div>
+          <div class="glass-card rounded-2xl p-4">
+            <span class="text-[11px] text-slate-400">Benchmark (B&H)</span>
+            <div id="bt-benchmark-ret" class="text-xl font-bold font-mono text-slate-300 mt-1">--%</div>
+          </div>
+          <div class="glass-card rounded-2xl p-4">
+            <span class="text-[11px] text-slate-400">Excess vs B&H</span>
+            <div id="bt-excess-ret" class="text-xl font-bold font-mono text-indigo-400 mt-1">--%</div>
+          </div>
+        </div>
+
+        <!-- Equity Curve Chart -->
+        <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div>
+            <h3 class="text-sm font-bold text-white">Equity Curve: Strategy Portfolio vs Buy & Hold Benchmark</h3>
+            <p class="text-xs text-slate-400">Dollar portfolio value over time after subtracting all execution transaction fees</p>
+          </div>
+          <div class="relative h-80 sm:h-96 w-full">
+            <canvas id="backtest-equity-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Trade History Log Table -->
+        <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+            Execution Trade Log (First 50 Orders)
+          </h3>
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-xs">
+              <thead class="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/60">
+                <tr>
+                  <th class="py-3 px-4 text-left">Date (UTC)</th>
+                  <th class="py-3 px-4 text-left">Type</th>
+                  <th class="py-3 px-4 text-right">Price</th>
+                  <th class="py-3 px-4 text-right">Shares</th>
+                  <th class="py-3 px-4 text-right">Cost</th>
+                  <th class="py-3 px-4 text-right">Value</th>
+                  <th class="py-3 px-4 text-right">Realized PnL</th>
+                </tr>
+              </thead>
+              <tbody id="bt-trades-tbody" class="divide-y divide-slate-800/60 font-mono">
+                <tr><td colspan="7" class="py-6 text-center text-slate-500 font-sans">Run a backtest to view trade log.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW: STRATEGY COMPARISON                  -->
+      <!-- ========================================== -->
+      <section id="view-comparison" class="view-section space-y-6 hidden">
+        <div id="comparison-error-container"></div>
+
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="bar-chart-2" class="w-4 h-4 text-teal-400"></i>
+            Multi-Strategy Side-by-Side Comparison
+          </h2>
+          <p class="text-xs text-slate-400">
+            Factual performance evaluation under strictly identical assumptions ($100k capital, 0.1% fees, 100% allocation). Zero ranking or bias.
+          </p>
+        </div>
+
+        <!-- Comparison Cards -->
+        <div id="comparison-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Dynamic Cards -->
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+            Comparative Performance Metrics Matrix
+          </h3>
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-xs">
+              <thead class="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/60">
+                <tr>
+                  <th class="py-3 px-4 text-left">Strategy</th>
+                  <th class="py-3 px-4 text-right">Final Value</th>
+                  <th class="py-3 px-4 text-right">Total Return</th>
+                  <th class="py-3 px-4 text-right">Trades</th>
+                  <th class="py-3 px-4 text-right">Max Drawdown</th>
+                  <th class="py-3 px-4 text-right">Benchmark</th>
+                  <th class="py-3 px-4 text-right">Excess vs B&H</th>
+                </tr>
+              </thead>
+              <tbody id="comparison-tbody" class="divide-y divide-slate-800/60 font-mono">
+                <tr><td colspan="7" class="py-6 text-center text-slate-500 font-sans">Evaluating comparison matrix...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW: ROBUSTNESS ANALYSIS                  -->
+      <!-- ========================================== -->
+      <section id="view-robustness" class="view-section space-y-6 hidden">
+        <div id="robustness-error-container"></div>
+
+        <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 text-orange-400"></i>
+                Parameter Robustness & Sensitivity Explorer
+              </h2>
+              <p class="text-xs text-slate-400">
+                Step 10 Bounded parameter grid sensitivity to verify absence of curve-fitting
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <select id="robustness-strat-select" onchange="window.quantexaApp.loadRobustness(false)" class="glass-input px-3 py-1.5 rounded-xl text-xs font-medium">
+                <option value="sma_crossover">SMA Crossover</option>
+                <option value="ema_trend">EMA Trend</option>
+                <option value="momentum">Momentum</option>
+                <option value="mean_reversion">Mean Reversion</option>
+              </select>
+              <span id="robustness-total-combos" class="text-xs font-mono text-indigo-400 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                -- Combinations
+              </span>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800 pt-2">
+            <table class="w-full text-xs">
+              <thead class="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/60">
+                <tr>
+                  <th class="py-3 px-4 text-left">Tested Parameters</th>
+                  <th class="py-3 px-4 text-right">Final Value</th>
+                  <th class="py-3 px-4 text-right">Total Return</th>
+                  <th class="py-3 px-4 text-right">Trades</th>
+                  <th class="py-3 px-4 text-right">Max Drawdown</th>
+                  <th class="py-3 px-4 text-right">Excess vs B&H</th>
+                </tr>
+              </thead>
+              <tbody id="robustness-tbody" class="divide-y divide-slate-800/60 font-mono">
+                <tr><td colspan="6" class="py-6 text-center text-slate-500 font-sans">Evaluating parameter sensitivity...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW: MARKET REGIMES                       -->
+      <!-- ========================================== -->
+      <section id="view-regimes" class="view-section space-y-6 hidden">
+        <div id="regimes-error-container"></div>
+
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="compass" class="w-4 h-4 text-yellow-400"></i>
+            Market Regime Intelligence & Strategy Attribution
+          </h2>
+          <p class="text-xs text-slate-400">
+            Step 11 Causal trend and volatility classification with expanding median thresholding
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Donut Distribution Chart -->
+          <div class="glass-panel rounded-2xl p-6 border border-slate-800 flex flex-col justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Regime Frequency Distribution
+            </h3>
+            <div class="relative h-60 w-full my-auto">
+              <canvas id="regime-donut-chart"></canvas>
+            </div>
+            <div class="text-[10px] text-slate-500 font-mono text-center pt-2">
+              Expanding median volatility threshold
+            </div>
+          </div>
+
+          <!-- Regime Summary Cards -->
+          <div id="regime-summary-cards" class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Dynamic Cards -->
+          </div>
+        </div>
+
+        <!-- Strategy Performance by Regime Table -->
+        <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">
+            Factual Strategy Attribution Across Detected Regimes
+          </h3>
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-xs">
+              <thead class="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/60">
+                <tr>
+                  <th class="py-3 px-4 text-left">Strategy</th>
+                  <th class="py-3 px-4 text-left">Market Regime</th>
+                  <th class="py-3 px-4 text-right">Bars</th>
+                  <th class="py-3 px-4 text-right">Trades</th>
+                  <th class="py-3 px-4 text-right">Total Return</th>
+                  <th class="py-3 px-4 text-right">Max Drawdown</th>
+                </tr>
+              </thead>
+              <tbody id="regime-performance-tbody" class="divide-y divide-slate-800/60 font-mono">
+                <tr><td colspan="6" class="py-6 text-center text-slate-500 font-sans">Evaluating strategy performance by regime...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW: SYSTEM STATUS                        -->
+      <!-- ========================================== -->
+      <section id="view-system" class="view-section space-y-6 hidden">
+        <div id="system-error-container"></div>
+
+        <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-6">
+          <div class="border-b border-slate-800/80 pb-4">
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="server" class="w-4 h-4 text-indigo-400"></i>
+              System Infrastructure & Data Integrity Health
+            </h2>
+            <p class="text-xs text-slate-400">
+              Live status of backend quantitative services and verified providers
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+            <div class="glass-card rounded-2xl p-5 border border-slate-800">
+              <span class="text-slate-400 font-sans text-xs">API Status</span>
+              <div id="sys-status" class="text-xl font-bold text-emerald-400 mt-2">HEALTHY</div>
+              <span class="text-[10px] text-slate-500 mt-1 block">FastAPI ASGI Core</span>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5 border border-slate-800">
+              <span class="text-slate-400 font-sans text-xs">Primary Provider</span>
+              <div id="sys-primary-provider" class="text-xl font-bold text-blue-400 mt-2">Twelve Data</div>
+              <span class="text-[10px] text-slate-500 mt-1 block">Tier 1 Financial Stream</span>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5 border border-slate-800">
+              <span class="text-slate-400 font-sans text-xs">Fallback Provider</span>
+              <div id="sys-fallback-provider" class="text-xl font-bold text-amber-400 mt-2">Alpha Vantage</div>
+              <span class="text-[10px] text-slate-500 mt-1 block">Automated Failover</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+              <div class="font-bold font-sans text-slate-200">Security & Secrets Protection</div>
+              <div class="text-slate-400">Active Provider: <span id="sys-active-provider" class="text-white">Twelve Data</span></div>
+              <div class="text-slate-400">Twelve Data Key: <span id="sys-twelve-key" class="text-emerald-400">Configured (Masked)</span></div>
+              <div class="text-slate-400">Alpha Vantage Key: <span id="sys-av-key" class="text-emerald-400">Configured (Masked)</span></div>
+              <div class="text-[10px] text-slate-500 pt-2">* Zero raw secrets are transmitted across client connections.</div>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+              <div class="font-bold font-sans text-slate-200">Cache & Quota Conservation</div>
+              <div class="text-slate-400">Historical Cache Hits: <span id="sys-cache-hits" class="text-indigo-400">0</span></div>
+              <div class="text-slate-400">Historical Cache Misses: <span id="sys-cache-misses" class="text-slate-300">0</span></div>
+              <div class="text-slate-400">Asset Catalog: <span id="sys-assets-count" class="text-white">3 Supported</span></div>
+              <div class="text-[10px] text-slate-500 pt-2">* 24h TTL policy active for daily historical series.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="p-4 border-t border-slate-800/80 text-center text-xs text-slate-500 font-mono">
+      QUANTEXA &bull; Quantitative Financial Analytics & Modeling Platform &bull; Step 12 Complete
     </footer>
-
   </div>
 
-  <script>
-    // Configuration
-    const API_BASE = window.location.origin.includes('8000') ? window.location.origin : 'http://127.0.0.1:8000';
-    
-    // Application State
-    const state = {
-      activeAsset: 'nvidia',
-      cachedData: {
-        nvidia: null,
-        bitcoin: null,
-        gold: null
-      },
-      displayLimit: 20
-    };
-
-    // Asset Display Config
-    const assetMeta = {
-      nvidia: {
-        name: 'NVIDIA Corporation',
-        symbol: 'NVDA',
-        assetClass: 'Equity',
-        colorClass: 'text-emerald-400',
-        activeBtnClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-      },
-      bitcoin: {
-        name: 'Bitcoin',
-        symbol: 'BTC',
-        assetClass: 'Cryptocurrency',
-        colorClass: 'text-amber-400',
-        activeBtnClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-      },
-      gold: {
-        name: 'Physical Gold Bullion',
-        symbol: 'XAU',
-        assetClass: 'Commodity',
-        colorClass: 'text-yellow-400',
-        activeBtnClass: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
-      }
-    };
-
-    // Format Number Helpers
-    function formatCurrency(val) {
-      if (val === null || val === undefined || isNaN(val)) return 'N/A';
-      return '$' + Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    function formatVolume(val) {
-      if (val === null || val === undefined || isNaN(val) || val === 0) return 'N/A';
-      return Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 });
-    }
-
-    function formatDateOnly(ts) {
-      if (!ts) return '--';
-      return ts.split('T')[0];
-    }
-
-    // Switch Tab
-    function switchTab(assetId) {
-      state.activeAsset = assetId;
-      state.displayLimit = 20;
-
-      // Update Tab Styles
-      ['nvidia', 'bitcoin', 'gold'].forEach(id => {
-        const btn = document.getElementById(`tab-${id}`);
-        if (id === assetId) {
-          btn.className = `tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-semibold transition-all border ${assetMeta[id].activeBtnClass}`;
-        } else {
-          btn.className = 'tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50';
-        }
-      });
-
-      // Clear any prior errors
-      hideError();
-
-      // Render if already cached, else fetch
-      if (state.cachedData[assetId]) {
-        renderAssetData(state.cachedData[assetId]);
-      } else {
-        fetchAssetData(assetId);
-      }
-    }
-
-    // Fetch Asset Data from FastAPI Backend
-    async function fetchAssetData(assetId) {
-      const refreshIcon = document.getElementById('refresh-icon');
-      refreshIcon.classList.add('animate-spin');
-
-      try {
-        // Fetch Latest and Historical in parallel
-        const [latestRes, histRes] = await Promise.all([
-          fetch(`${API_BASE}/market/${assetId}/latest`),
-          fetch(`${API_BASE}/market/${assetId}/historical?outputsize=compact`)
-        ]);
-
-        if (!latestRes.ok) {
-          const errData = await latestRes.json().catch(() => ({}));
-          throw new Error(errData.message || `Failed to fetch latest quote (HTTP ${latestRes.status})`);
-        }
-        if (!histRes.ok) {
-          const errData = await histRes.json().catch(() => ({}));
-          throw new Error(errData.message || `Failed to fetch historical series (HTTP ${histRes.status})`);
-        }
-
-        const latestData = await latestRes.json();
-        const histData = await histRes.json();
-
-        // Cache in memory
-        state.cachedData[assetId] = {
-          latest: latestData,
-          historical: histData
-        };
-
-        renderAssetData(state.cachedData[assetId]);
-        updateLastRefreshed();
-      } catch (err) {
-        console.error("Fetch error:", err);
-        showError("Alpha Vantage Error", err.message);
-        renderErrorState(err.message);
-      } finally {
-        refreshIcon.classList.remove('animate-spin');
-      }
-    }
-
-    // Render Data into DOM
-    function renderAssetData({ latest, historical }) {
-      hideError();
-      const meta = assetMeta[state.activeAsset];
-
-      // Update Hero Stats
-      document.getElementById('hero-asset-name').innerText = latest.asset || meta.name;
-      document.getElementById('hero-asset-symbol').innerText = latest.symbol || meta.symbol;
-      document.getElementById('hero-price').innerText = formatCurrency(latest.price);
-      document.getElementById('hero-timestamp').innerText = `UTC Timestamp: ${latest.timestamp || 'N/A'}`;
-
-      // Change / Change Percent
-      const changeEl = document.getElementById('hero-change');
-      const changePctEl = document.getElementById('hero-change-pct');
-      if (latest.change !== null && latest.change !== undefined) {
-        const isPos = latest.change >= 0;
-        changeEl.innerText = `${isPos ? '+' : ''}${formatCurrency(latest.change)}`;
-        changePctEl.innerText = `(${latest.change_percent || '--'})`;
-        document.getElementById('hero-change-container').className = `mt-1 flex items-center gap-1.5 text-xs font-mono ${isPos ? 'text-emerald-400' : 'text-rose-400'}`;
-      } else {
-        changeEl.innerText = 'Stable Spot';
-        changePctEl.innerText = '';
-        document.getElementById('hero-change-container').className = 'mt-1 flex items-center gap-1.5 text-xs font-mono text-slate-400';
-      }
-
-      // Metrics Grid
-      document.getElementById('metric-open').innerText = formatCurrency(latest.open);
-      document.getElementById('metric-high').innerText = formatCurrency(latest.high);
-      document.getElementById('metric-low').innerText = formatCurrency(latest.low);
-      document.getElementById('metric-close').innerText = formatCurrency(latest.close);
-      document.getElementById('metric-volume').innerText = formatVolume(latest.volume);
-      document.getElementById('metric-status').innerText = latest.data_status === 'latest_available' ? 'Latest Available' : (latest.data_status || 'Delayed');
-
-      // Status Badges
-      document.getElementById('badge-data-status').innerText = `Status: ${latest.data_status === 'latest_available' ? 'Latest Available' : latest.data_status}`;
-
-      // Render Historical Table (newest first)
-      const allPoints = (historical.data || []).slice().reverse();
-      const visiblePoints = allPoints.slice(0, state.displayLimit);
-
-      const tbody = document.getElementById('historical-tbody');
-      if (visiblePoints.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500 font-sans">No historical records available.</td></tr>`;
-      } else {
-        tbody.innerHTML = visiblePoints.map((row, idx) => `
-          <tr class="hover:bg-slate-800/40 transition-colors">
-            <td class="py-3 px-4 text-slate-300 font-medium">${formatDateOnly(row.timestamp)}</td>
-            <td class="py-3 px-4 text-right text-slate-300">${formatCurrency(row.open)}</td>
-            <td class="py-3 px-4 text-right text-emerald-400 font-medium">${formatCurrency(row.high)}</td>
-            <td class="py-3 px-4 text-right text-rose-400 font-medium">${formatCurrency(row.low)}</td>
-            <td class="py-3 px-4 text-right text-white font-semibold">${formatCurrency(row.close)}</td>
-            <td class="py-3 px-4 text-right text-slate-400">${formatVolume(row.volume)}</td>
-          </tr>
-        `).join('');
-      }
-
-      // Record Count & Load More Button
-      document.getElementById('table-record-count').innerText = `Showing ${visiblePoints.length} of ${allPoints.length} records`;
-      const loadMoreBtn = document.getElementById('btn-load-more');
-      if (state.displayLimit < allPoints.length) {
-        loadMoreBtn.classList.remove('hidden');
-        loadMoreBtn.innerText = `Load More (${Math.min(20, allPoints.length - state.displayLimit)} Records)`;
-      } else {
-        loadMoreBtn.classList.add('hidden');
-      }
-    }
-
-    // Load More Records
-    function loadMoreRecords() {
-      state.displayLimit += 20;
-      if (state.cachedData[state.activeAsset]) {
-        renderAssetData(state.cachedData[state.activeAsset]);
-      }
-    }
-
-    // Refresh Current Asset
-    function refreshCurrentAsset() {
-      // Evict cache for active asset and refetch
-      state.cachedData[state.activeAsset] = null;
-      fetchAssetData(state.activeAsset);
-    }
-
-    // Error Handling
-    function showError(title, message) {
-      const banner = document.getElementById('error-banner');
-      document.getElementById('error-title').innerText = title;
-      document.getElementById('error-message').innerText = message;
-      banner.classList.remove('hidden');
-    }
-
-    function hideError() {
-      document.getElementById('error-banner').classList.add('hidden');
-    }
-
-    function renderErrorState(message) {
-      document.getElementById('hero-price').innerText = 'Error';
-      document.getElementById('historical-tbody').innerHTML = `
-        <tr>
-          <td colspan="6" class="py-8 text-center text-rose-400 font-sans">
-            Unable to retrieve live market data: ${message}
-          </td>
-        </tr>
-      `;
-    }
-
-    function updateLastRefreshed() {
-      const now = new Date();
-      document.getElementById('last-updated-text').innerText = now.toLocaleTimeString();
-    }
-
-    // Check Backend Health on Initial Load
-    async function checkBackendHealth() {
-      try {
-        const res = await fetch(`${API_BASE}/health`);
-        const data = await res.json();
-        if (data.status === 'healthy') {
-          document.getElementById('backend-status-text').innerText = `Backend Online (${data.masked_key})`;
-        }
-      } catch (e) {
-        document.getElementById('backend-status-pill').innerHTML = `
-          <span class="w-2 h-2 rounded-full bg-rose-400"></span>
-          <span class="text-rose-300">Backend Offline</span>
-        `;
-      }
-    }
-
-    // Initial Execution
-    document.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
-      checkBackendHealth();
-      switchTab('nvidia');
-    });
-  </script>
+  <!-- APPLICATION SCRIPTS -->
+  <script src="/js/api.js"></script>
+  <script src="/js/charts.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 </html>

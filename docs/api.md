@@ -1148,6 +1148,21 @@ Same query parameters as `/regimes` (`trend_period`, `volatility_window`, `volat
 
 ---
 
+## 20. Quantexa Web Application Viewer & Static Assets
+
+### `GET /viewer`
+
+Serves the **Quantexa** financial intelligence dashboard single-page web application (`frontend/index.html`).
+
+#### Static Asset Mounts
+- `GET /css/{path}`: Serves stylesheet assets from `frontend/css/` (e.g. `/css/styles.css`).
+- `GET /js/{path}`: Serves modular JavaScript components from `frontend/js/` (`/js/api.js`, `/js/charts.js`, `/js/app.js`).
+
+#### Response: `200 OK`
+Content-Type: `text/html; charset=utf-8`
+
+---
+
 ## Common Error Codes
 
 | Status Code | Reason | Cause |
@@ -1156,4 +1171,5 @@ Same query parameters as `/regimes` (`trend_period`, `volatility_window`, `volat
 | `404 Not Found` | Unsupported Asset | Requested asset identifier is not mapped to NVDA, BTC/USD, or XAU/USD. |
 | `502 Bad Gateway` | Upstream API Error | Upstream market data provider failed or rate limit exceeded with no valid cache. |
 | `504 Gateway Timeout` | Provider Timeout | Upstream provider failed to respond within connection timeout window. |
+
 

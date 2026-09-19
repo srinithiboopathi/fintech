@@ -117,7 +117,18 @@ def create_app() -> FastAPI:
 
     from pathlib import Path
     from fastapi.responses import FileResponse
-    frontend_file = Path(__file__).resolve().parent.parent.parent / "frontend" / "index.html"
+    from fastapi.staticfiles import StaticFiles
+
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    frontend_file = frontend_dir / "index.html"
+
+    # Mount static assets if directories exist
+    css_dir = frontend_dir / "css"
+    js_dir = frontend_dir / "js"
+    if css_dir.exists():
+        app.mount("/css", StaticFiles(directory=str(css_dir)), name="css")
+    if js_dir.exists():
+        app.mount("/js", StaticFiles(directory=str(js_dir)), name="js")
 
     @app.get("/viewer", tags=["Viewer"])
     async def viewer():
