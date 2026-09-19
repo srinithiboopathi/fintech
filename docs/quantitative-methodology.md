@@ -3,7 +3,7 @@
 This document details the mathematical models, formulas, statistical assumptions, and numerical implementations active in the **Quantexa** analytics platform.
 
 > [!NOTE]
-> This document describes **ONLY** the currently implemented quantitative algorithms (Steps 1–5). Future analytical models (such as Sharpe ratio, maximum drawdown, and asset cross-correlation) are reserved for subsequent steps.
+> This document describes the currently implemented quantitative algorithms (Steps 1–6). Future analytical models (such as portfolio correlation and backtesting) are reserved for subsequent steps.
 
 ---
 

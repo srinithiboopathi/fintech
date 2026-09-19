@@ -16,6 +16,7 @@ graph TD
         MDS --> DC[Data Cleaner Service<br/>/app/services/data_cleaner.py]
         MDS --> IS[Indicator Service<br/>/app/services/indicators.py]
         MDS --> RMS[Risk Metrics Service<br/>/app/services/risk_metrics.py]
+        MDS --> RAS[Risk Analysis Service<br/>/app/services/risk_analysis.py]
     end
     
     subgraph "External Providers"
