@@ -6,8 +6,8 @@ and rotates to cash when the price drops below or equals its EMA.
 """
 
 import pandas as pd
-from backend.app.quant.indicators import calculate_ema
-from backend.app.strategies.base import BaseStrategy
+from app.quant.indicators import calculate_ema
+from app.strategies.base import BaseStrategy
 
 
 class EMATrendStrategy(BaseStrategy):

@@ -6,7 +6,7 @@ Converts signal transitions into simulated order fills and tracks trade records.
 
 from dataclasses import dataclass, asdict
 from typing import Optional, Tuple
-from backend.app.backtesting.transaction_costs import TransactionCostModel
+from app.backtesting.transaction_costs import TransactionCostModel
 
 
 @dataclass

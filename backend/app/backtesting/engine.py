@@ -9,12 +9,12 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Union
 import pandas as pd
 
-from backend.app.strategies.base import BaseStrategy
-from backend.app.backtesting.transaction_costs import TransactionCostModel
-from backend.app.backtesting.position_sizing import BasePositionSizer, FullCapitalSizer
-from backend.app.backtesting.execution import ExecutionHandler, Trade
-from backend.app.backtesting.portfolio import PortfolioTracker
-from backend.app.quant.drawdown import calculate_max_drawdown
+from app.strategies.base import BaseStrategy
+from app.backtesting.transaction_costs import TransactionCostModel
+from app.backtesting.position_sizing import BasePositionSizer, FullCapitalSizer
+from app.backtesting.execution import ExecutionHandler, Trade
+from app.backtesting.portfolio import PortfolioTracker
+from app.quant.drawdown import calculate_max_drawdown
 
 
 @dataclass

@@ -6,8 +6,8 @@ and rotates to cash when the fast SMA crosses below or equals the slow SMA.
 """
 
 import pandas as pd
-from backend.app.quant.indicators import calculate_sma
-from backend.app.strategies.base import BaseStrategy
+from app.quant.indicators import calculate_sma
+from app.strategies.base import BaseStrategy
 
 
 class SMACrossoverStrategy(BaseStrategy):
