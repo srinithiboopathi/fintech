@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Dict, Any, List, Optional
-from app.data.providers.csv_provider import CSVMarketProvider
+from sqlalchemy.orm import Session
+from app.database.connection import get_db
+from app.database.repositories import AssetRepository, MarketPriceRepository
 from app.analysis.robustness import RobustnessEngine
 from app.strategies.sma_crossover import SMACrossoverStrategy
 from app.strategies.ema_trend import EMATrendStrategy
@@ -8,7 +10,6 @@ from app.strategies.momentum import MomentumBreakoutStrategy
 from app.strategies.mean_reversion import MeanReversionStrategy
 
 router = APIRouter(prefix="/robustness", tags=["Robustness Lab"])
-provider = CSVMarketProvider()
 
 STRATEGY_MAP = {
     "sma_crossover": SMACrossoverStrategy,
@@ -17,21 +18,46 @@ STRATEGY_MAP = {
     "mean_reversion": MeanReversionStrategy
 }
 
+def _get_asset_bars(db: Session, symbol: str, start_date: Optional[str] = None, end_date: Optional[str] = None):
+    asset = AssetRepository.get_by_symbol(db, symbol)
+    if not asset:
+        raise HTTPException(status_code=404, detail=f"No data for symbol '{symbol}'.")
+
+    prices = MarketPriceRepository.get_prices_for_asset(db, asset.id, start_date, end_date)
+    if not prices:
+        raise HTTPException(status_code=404, detail=f"No data for symbol '{symbol}'.")
+
+    bars = []
+    prev_close = None
+    for p in prices:
+        daily_return = (p.close - prev_close) / prev_close if prev_close is not None and prev_close > 0 else 0.0
+        prev_close = p.close
+        bars.append({
+            "date": p.date,
+            "symbol": asset.symbol,
+            "open": p.open,
+            "high": p.high,
+            "low": p.low,
+            "close": p.close,
+            "volume": p.volume,
+            "daily_return": round(daily_return, 6)
+        })
+    return asset.symbol, bars
+
 @router.get("/monte-carlo/{symbol}")
 def run_monte_carlo(
     symbol: str,
     simulations: int = Query(300, ge=50, le=1000, description="Number of Monte Carlo paths"),
     horizon: int = Query(252, ge=20, le=504, description="Horizon days"),
     start_date: Optional[str] = Query(None),
-    end_date: Optional[str] = Query(None)
+    end_date: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
     Simulates forward probability distributions and tail-risk confidence intervals
     via non-parametric historical return bootstrap resampling.
     """
-    bars = provider.get_historical_bars(symbol, start_date, end_date)
-    if not bars:
-        raise HTTPException(status_code=404, detail=f"No data for symbol '{symbol}'.")
+    norm_symbol, bars = _get_asset_bars(db, symbol, start_date, end_date)
 
     rets = [b["daily_return"] for b in bars]
     result = RobustnessEngine.monte_carlo_simulation(
@@ -40,7 +66,7 @@ def run_monte_carlo(
         num_simulations=simulations,
         horizon_days=horizon
     )
-    result["symbol"] = provider.normalize_symbol(symbol)
+    result["symbol"] = norm_symbol
     return result
 
 @router.get("/sensitivity/{symbol}")
@@ -48,15 +74,14 @@ def run_parameter_sensitivity(
     symbol: str,
     strategy_id: str = Query("sma_crossover", description="Strategy identifier"),
     start_date: Optional[str] = Query(None),
-    end_date: Optional[str] = Query(None)
+    end_date: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
     Evaluates strategy performance across parameter grids and transaction cost friction levels
     to test for parameter stability and curve-fitting fragility.
     """
-    bars = provider.get_historical_bars(symbol, start_date, end_date)
-    if not bars:
-        raise HTTPException(status_code=404, detail=f"No data for symbol '{symbol}'.")
+    norm_symbol, bars = _get_asset_bars(db, symbol, start_date, end_date)
 
     strat_cls = STRATEGY_MAP.get(strategy_id.lower(), SMACrossoverStrategy)
     
@@ -97,7 +122,7 @@ def run_parameter_sensitivity(
     )
 
     return {
-        "symbol": provider.normalize_symbol(symbol),
+        "symbol": norm_symbol,
         "strategy_id": strategy_id,
         "total_permutations": len(sensitivity_results),
         "results": sensitivity_results
