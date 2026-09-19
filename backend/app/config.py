@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     # AI Assistant Configuration (Step 13)
     AI_PROVIDER: str = "gemini"  # "gemini" or "openai"
     AI_API_KEY: str = ""
-    AI_MODEL: str = "gemini-1.5-flash"
+    AI_MODEL: str = "gemini-3.6-flash"
 
     # Cache Settings
     CACHE_DIR: Path = DATA_CACHE_DIR

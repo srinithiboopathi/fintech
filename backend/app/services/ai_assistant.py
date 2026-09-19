@@ -38,7 +38,7 @@ class AIProvider(ABC):
 class GeminiProvider(AIProvider):
     """Google Gemini completion provider using native REST API."""
 
-    def __init__(self, api_key: str, model: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model: str = "gemini-3.6-flash"):
         self.api_key = api_key
         self.model = model
         self.endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
@@ -137,7 +137,7 @@ class AIAssistantService:
         """Resolves configured server-side AI provider."""
         provider_name = (settings.AI_PROVIDER or "gemini").lower()
         api_key = settings.AI_API_KEY.strip()
-        model_name = settings.AI_MODEL.strip() or ("gemini-1.5-flash" if provider_name == "gemini" else "gpt-4o-mini")
+        model_name = settings.AI_MODEL.strip() or ("gemini-3.6-flash" if provider_name == "gemini" else "gpt-4o-mini")
 
         if not settings.is_ai_configured:
             return None, "unconfigured", "none"
