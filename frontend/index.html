@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Data Viewer | Alpha Vantage Ingestion</title>
+  <!-- Google Fonts: Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            slate: {
+              850: '#111827',
+              900: '#0b0f19',
+              950: '#05070d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #172554 0%, #0b0f19 50%, #05070d 100%);
+      min-height: 100vh;
+      color: #f1f5f9;
+    }
+    .glass-panel {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
+    }
+    .badge-status {
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    }
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.4);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.6);
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Navigation & Header -->
+    <header class="glass-panel rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="space-y-1">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+            <i data-lucide="activity" class="w-5 h-5 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              Market Data Ingestion Viewer
+              <span class="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Step 1 Verified
+              </span>
+            </h1>
+            <p class="text-xs text-slate-400">
+              Quantitative Multi-Asset Platform &bull; Real Alpha Vantage Live Data Feed
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center flex-wrap gap-3">
+        <!-- Live System Status Badge -->
+        <div id="backend-status-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/50 text-xs font-medium text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="backend-status-text">Backend Online</span>
+        </div>
+
+        <!-- Last Updated -->
+        <div class="text-xs text-slate-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/40 border border-slate-700/30 font-mono">
+          <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-500"></i>
+          <span>Updated:</span>
+          <span id="last-updated-text" class="text-slate-200">--:--:--</span>
+        </div>
+
+        <!-- Refresh Button -->
+        <button id="btn-refresh" onclick="refreshCurrentAsset()" class="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50">
+          <i id="refresh-icon" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span>Refresh Data</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Asset Selection Tabs -->
+    <div class="glass-panel rounded-2xl p-2 flex items-center gap-2">
+      <button onclick="switchTab('nvidia')" id="tab-nvidia" class="tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-semibold transition-all bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+        <i data-lucide="cpu" class="w-4 h-4"></i>
+        <span>NVIDIA (NVDA)</span>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Equity</span>
+      </button>
+
+      <button onclick="switchTab('bitcoin')" id="tab-bitcoin" class="tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="coins" class="w-4 h-4"></i>
+        <span>Bitcoin (BTC)</span>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">Crypto</span>
+      </button>
+
+      <button onclick="switchTab('gold')" id="tab-gold" class="tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <span>Gold (XAU)</span>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300">Commodity</span>
+      </button>
+    </div>
+
+    <!-- Error Alert Banner (Hidden by default) -->
+    <div id="error-banner" class="hidden glass-panel rounded-2xl p-4 border-rose-500/30 bg-rose-950/30 flex items-start gap-3 text-rose-300">
+      <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400 shrink-0 mt-0.5"></i>
+      <div class="space-y-1 text-xs">
+        <div id="error-title" class="font-bold text-rose-200">Data Fetch Warning</div>
+        <div id="error-message" class="text-rose-300/80 leading-relaxed font-mono"></div>
+      </div>
+    </div>
+
+    <!-- SECTION 1: LATEST DATA HUD -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <i data-lucide="zap" class="w-4 h-4 text-blue-400"></i>
+          Latest Market Data
+        </h2>
+        <div class="flex items-center gap-2">
+          <span class="text-xs px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
+            Source: Alpha Vantage
+          </span>
+          <span id="badge-data-status" class="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+            Status: Latest Available
+          </span>
+        </div>
+      </div>
+
+      <!-- Hero Price & Stats Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <!-- Main Price Card (Spans 2 columns) -->
+        <div class="glass-panel col-span-2 rounded-2xl p-5 border border-slate-700/50 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span id="hero-asset-name" class="font-medium text-slate-200">Asset</span>
+            <span id="hero-asset-symbol" class="font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">SYMBOL</span>
+          </div>
+          <div class="my-3">
+            <div id="hero-price" class="text-3xl lg:text-4xl font-extrabold font-mono text-white tracking-tight">
+              $--.--
+            </div>
+            <div id="hero-change-container" class="mt-1 flex items-center gap-1.5 text-xs font-mono text-slate-400">
+              <span id="hero-change">--</span>
+              <span id="hero-change-pct">(--%)</span>
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-500 flex items-center gap-1">
+            <i data-lucide="calendar" class="w-3 h-3"></i>
+            <span id="hero-timestamp">UTC Timestamp: --</span>
+          </div>
+        </div>
+
+        <!-- Metric: Open -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <span class="text-xs text-slate-400 font-medium">Open</span>
+          <div id="metric-open" class="text-lg font-bold font-mono text-slate-200 mt-2">$0.00</div>
+          <span class="text-[10px] text-slate-500">Session Open</span>
+        </div>
+
+        <!-- Metric: High -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <span class="text-xs text-slate-400 font-medium">High</span>
+          <div id="metric-high" class="text-lg font-bold font-mono text-emerald-400 mt-2">$0.00</div>
+          <span class="text-[10px] text-slate-500">Session High</span>
+        </div>
+
+        <!-- Metric: Low -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <span class="text-xs text-slate-400 font-medium">Low</span>
+          <div id="metric-low" class="text-lg font-bold font-mono text-rose-400 mt-2">$0.00</div>
+          <span class="text-[10px] text-slate-500">Session Low</span>
+        </div>
+
+        <!-- Metric: Close -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <span class="text-xs text-slate-400 font-medium">Close</span>
+          <div id="metric-close" class="text-lg font-bold font-mono text-slate-200 mt-2">$0.00</div>
+          <span class="text-[10px] text-slate-500">Latest Traded</span>
+        </div>
+
+        <!-- Metric: Volume -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <span class="text-xs text-slate-400 font-medium">Volume</span>
+          <div id="metric-volume" class="text-lg font-bold font-mono text-slate-200 mt-2">--</div>
+          <span class="text-[10px] text-slate-500">Total Traded</span>
+        </div>
+
+        <!-- Metric: Status -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+          <span class="text-xs text-slate-400 font-medium">Status</span>
+          <div id="metric-status" class="text-xs font-bold font-mono text-indigo-400 mt-2">Latest Available</div>
+          <span class="text-[10px] text-slate-500">Provider State</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: HISTORICAL DATA TABLE -->
+    <div class="glass-panel rounded-2xl p-6 space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="table" class="w-4 h-4 text-emerald-400"></i>
+            Historical OHLCV Market Data
+          </h2>
+          <p class="text-xs text-slate-400">
+            Standardized UTC Daily Time Series &bull; Displaying latest chronological records first
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span id="table-record-count" class="text-xs font-mono text-slate-400 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40">
+            Showing 0 records
+          </span>
+        </div>
+      </div>
+
+      <!-- Responsive Table Container -->
+      <div class="overflow-x-auto rounded-xl border border-slate-800">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-700/60">
+            <tr>
+              <th scope="col" class="py-3 px-4">Date (UTC)</th>
+              <th scope="col" class="py-3 px-4 text-right">Open</th>
+              <th scope="col" class="py-3 px-4 text-right">High</th>
+              <th scope="col" class="py-3 px-4 text-right">Low</th>
+              <th scope="col" class="py-3 px-4 text-right">Close</th>
+              <th scope="col" class="py-3 px-4 text-right">Volume</th>
+            </tr>
+          </thead>
+          <tbody id="historical-tbody" class="divide-y divide-slate-800/60 font-mono">
+            <!-- Table rows populated dynamically via JS -->
+            <tr>
+              <td colspan="6" class="py-8 text-center text-slate-500 font-sans">
+                Loading market data from Alpha Vantage...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footer / Load More -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+        <span class="text-xs text-slate-500">
+          * Prices quoted in USD. Values are verified and normalized directly from Alpha Vantage.
+        </span>
+        <button id="btn-load-more" onclick="loadMoreRecords()" class="hidden px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition-all active:scale-95">
+          Load More (+20 Records)
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer Disclaimers -->
+    <footer class="text-center py-4 text-xs text-slate-500 space-y-1">
+      <p>Quantitative Multi-Asset Financial Intelligence & Backtesting Platform &bull; Step 1 Market Ingestion Layer</p>
+      <p>Data Source: Alpha Vantage API &bull; Normalized Timestamps: UTC &bull; Entitlement: Latest Available / Delayed</p>
+    </footer>
+
+  </div>
+
+  <script>
+    // Configuration
+    const API_BASE = window.location.origin.includes('8000') ? window.location.origin : 'http://127.0.0.1:8000';
+    
+    // Application State
+    const state = {
+      activeAsset: 'nvidia',
+      cachedData: {
+        nvidia: null,
+        bitcoin: null,
+        gold: null
+      },
+      displayLimit: 20
+    };
+
+    // Asset Display Config
+    const assetMeta = {
+      nvidia: {
+        name: 'NVIDIA Corporation',
+        symbol: 'NVDA',
+        assetClass: 'Equity',
+        colorClass: 'text-emerald-400',
+        activeBtnClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+      },
+      bitcoin: {
+        name: 'Bitcoin',
+        symbol: 'BTC',
+        assetClass: 'Cryptocurrency',
+        colorClass: 'text-amber-400',
+        activeBtnClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+      },
+      gold: {
+        name: 'Physical Gold Bullion',
+        symbol: 'XAU',
+        assetClass: 'Commodity',
+        colorClass: 'text-yellow-400',
+        activeBtnClass: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
+      }
+    };
+
+    // Format Number Helpers
+    function formatCurrency(val) {
+      if (val === null || val === undefined || isNaN(val)) return 'N/A';
+      return '$' + Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatVolume(val) {
+      if (val === null || val === undefined || isNaN(val) || val === 0) return 'N/A';
+      return Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    }
+
+    function formatDateOnly(ts) {
+      if (!ts) return '--';
+      return ts.split('T')[0];
+    }
+
+    // Switch Tab
+    function switchTab(assetId) {
+      state.activeAsset = assetId;
+      state.displayLimit = 20;
+
+      // Update Tab Styles
+      ['nvidia', 'bitcoin', 'gold'].forEach(id => {
+        const btn = document.getElementById(`tab-${id}`);
+        if (id === assetId) {
+          btn.className = `tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-semibold transition-all border ${assetMeta[id].activeBtnClass}`;
+        } else {
+          btn.className = 'tab-btn flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/50';
+        }
+      });
+
+      // Clear any prior errors
+      hideError();
+
+      // Render if already cached, else fetch
+      if (state.cachedData[assetId]) {
+        renderAssetData(state.cachedData[assetId]);
+      } else {
+        fetchAssetData(assetId);
+      }
+    }
+
+    // Fetch Asset Data from FastAPI Backend
+    async function fetchAssetData(assetId) {
+      const refreshIcon = document.getElementById('refresh-icon');
+      refreshIcon.classList.add('animate-spin');
+
+      try {
+        // Fetch Latest and Historical in parallel
+        const [latestRes, histRes] = await Promise.all([
+          fetch(`${API_BASE}/market/${assetId}/latest`),
+          fetch(`${API_BASE}/market/${assetId}/historical?outputsize=compact`)
+        ]);
+
+        if (!latestRes.ok) {
+          const errData = await latestRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Failed to fetch latest quote (HTTP ${latestRes.status})`);
+        }
+        if (!histRes.ok) {
+          const errData = await histRes.json().catch(() => ({}));
+          throw new Error(errData.message || `Failed to fetch historical series (HTTP ${histRes.status})`);
+        }
+
+        const latestData = await latestRes.json();
+        const histData = await histRes.json();
+
+        // Cache in memory
+        state.cachedData[assetId] = {
+          latest: latestData,
+          historical: histData
+        };
+
+        renderAssetData(state.cachedData[assetId]);
+        updateLastRefreshed();
+      } catch (err) {
+        console.error("Fetch error:", err);
+        showError("Alpha Vantage Error", err.message);
+        renderErrorState(err.message);
+      } finally {
+        refreshIcon.classList.remove('animate-spin');
+      }
+    }
+
+    // Render Data into DOM
+    function renderAssetData({ latest, historical }) {
+      hideError();
+      const meta = assetMeta[state.activeAsset];
+
+      // Update Hero Stats
+      document.getElementById('hero-asset-name').innerText = latest.asset || meta.name;
+      document.getElementById('hero-asset-symbol').innerText = latest.symbol || meta.symbol;
+      document.getElementById('hero-price').innerText = formatCurrency(latest.price);
+      document.getElementById('hero-timestamp').innerText = `UTC Timestamp: ${latest.timestamp || 'N/A'}`;
+
+      // Change / Change Percent
+      const changeEl = document.getElementById('hero-change');
+      const changePctEl = document.getElementById('hero-change-pct');
+      if (latest.change !== null && latest.change !== undefined) {
+        const isPos = latest.change >= 0;
+        changeEl.innerText = `${isPos ? '+' : ''}${formatCurrency(latest.change)}`;
+        changePctEl.innerText = `(${latest.change_percent || '--'})`;
+        document.getElementById('hero-change-container').className = `mt-1 flex items-center gap-1.5 text-xs font-mono ${isPos ? 'text-emerald-400' : 'text-rose-400'}`;
+      } else {
+        changeEl.innerText = 'Stable Spot';
+        changePctEl.innerText = '';
+        document.getElementById('hero-change-container').className = 'mt-1 flex items-center gap-1.5 text-xs font-mono text-slate-400';
+      }
+
+      // Metrics Grid
+      document.getElementById('metric-open').innerText = formatCurrency(latest.open);
+      document.getElementById('metric-high').innerText = formatCurrency(latest.high);
+      document.getElementById('metric-low').innerText = formatCurrency(latest.low);
+      document.getElementById('metric-close').innerText = formatCurrency(latest.close);
+      document.getElementById('metric-volume').innerText = formatVolume(latest.volume);
+      document.getElementById('metric-status').innerText = latest.data_status === 'latest_available' ? 'Latest Available' : (latest.data_status || 'Delayed');
+
+      // Status Badges
+      document.getElementById('badge-data-status').innerText = `Status: ${latest.data_status === 'latest_available' ? 'Latest Available' : latest.data_status}`;
+
+      // Render Historical Table (newest first)
+      const allPoints = (historical.data || []).slice().reverse();
+      const visiblePoints = allPoints.slice(0, state.displayLimit);
+
+      const tbody = document.getElementById('historical-tbody');
+      if (visiblePoints.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-500 font-sans">No historical records available.</td></tr>`;
+      } else {
+        tbody.innerHTML = visiblePoints.map((row, idx) => `
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="py-3 px-4 text-slate-300 font-medium">${formatDateOnly(row.timestamp)}</td>
+            <td class="py-3 px-4 text-right text-slate-300">${formatCurrency(row.open)}</td>
+            <td class="py-3 px-4 text-right text-emerald-400 font-medium">${formatCurrency(row.high)}</td>
+            <td class="py-3 px-4 text-right text-rose-400 font-medium">${formatCurrency(row.low)}</td>
+            <td class="py-3 px-4 text-right text-white font-semibold">${formatCurrency(row.close)}</td>
+            <td class="py-3 px-4 text-right text-slate-400">${formatVolume(row.volume)}</td>
+          </tr>
+        `).join('');
+      }
+
+      // Record Count & Load More Button
+      document.getElementById('table-record-count').innerText = `Showing ${visiblePoints.length} of ${allPoints.length} records`;
+      const loadMoreBtn = document.getElementById('btn-load-more');
+      if (state.displayLimit < allPoints.length) {
+        loadMoreBtn.classList.remove('hidden');
+        loadMoreBtn.innerText = `Load More (${Math.min(20, allPoints.length - state.displayLimit)} Records)`;
+      } else {
+        loadMoreBtn.classList.add('hidden');
+      }
+    }
+
+    // Load More Records
+    function loadMoreRecords() {
+      state.displayLimit += 20;
+      if (state.cachedData[state.activeAsset]) {
+        renderAssetData(state.cachedData[state.activeAsset]);
+      }
+    }
+
+    // Refresh Current Asset
+    function refreshCurrentAsset() {
+      // Evict cache for active asset and refetch
+      state.cachedData[state.activeAsset] = null;
+      fetchAssetData(state.activeAsset);
+    }
+
+    // Error Handling
+    function showError(title, message) {
+      const banner = document.getElementById('error-banner');
+      document.getElementById('error-title').innerText = title;
+      document.getElementById('error-message').innerText = message;
+      banner.classList.remove('hidden');
+    }
+
+    function hideError() {
+      document.getElementById('error-banner').classList.add('hidden');
+    }
+
+    function renderErrorState(message) {
+      document.getElementById('hero-price').innerText = 'Error';
+      document.getElementById('historical-tbody').innerHTML = `
+        <tr>
+          <td colspan="6" class="py-8 text-center text-rose-400 font-sans">
+            Unable to retrieve live market data: ${message}
+          </td>
+        </tr>
+      `;
+    }
+
+    function updateLastRefreshed() {
+      const now = new Date();
+      document.getElementById('last-updated-text').innerText = now.toLocaleTimeString();
+    }
+
+    // Check Backend Health on Initial Load
+    async function checkBackendHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        const data = await res.json();
+        if (data.status === 'healthy') {
+          document.getElementById('backend-status-text').innerText = `Backend Online (${data.masked_key})`;
+        }
+      } catch (e) {
+        document.getElementById('backend-status-pill').innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+          <span class="text-rose-300">Backend Offline</span>
+        `;
+      }
+    }
+
+    // Initial Execution
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      checkBackendHealth();
+      switchTab('nvidia');
+    });
+  </script>
+</body>
+</html>
