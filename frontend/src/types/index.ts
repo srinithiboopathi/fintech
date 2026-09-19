@@ -6,6 +6,7 @@ export interface AssetInfo {
   ticker: string;
   color: string;
   category: string;
+  badgeClass: string;
 }
 
 export interface NavigationItem {
@@ -13,4 +14,8 @@ export interface NavigationItem {
   name: string;
   path: string;
   iconName: string;
+  phase: number;
+  description: string;
 }
+
+export type StatusType = 'idle' | 'loading' | 'success' | 'error';
