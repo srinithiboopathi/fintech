@@ -1,5 +1,5 @@
 """
-Schemas package for QUANTLAB.
+Pydantic Schemas Package for QUANTLAB API.
 """
 from backend.app.schemas.market import (
     MarketDataPoint,
@@ -12,6 +12,19 @@ from backend.app.schemas.market import (
     MultiAssetHistoricalDataResponse,
     ErrorResponse,
 )
+from backend.app.schemas.quant import (
+    IndicatorDataPoint,
+    IndicatorResponse,
+    ReturnDataPoint,
+    ReturnsResponse,
+    VolatilityDataPoint,
+    VolatilityResponse,
+    RiskMetricsResponse,
+    RollingPerformancePoint,
+    RollingPerformanceResponse,
+    DailyReturnStats,
+    AssetQuantSummaryResponse,
+)
 
 __all__ = [
     "MarketDataPoint",
@@ -23,4 +36,15 @@ __all__ = [
     "HistoricalDataResponse",
     "MultiAssetHistoricalDataResponse",
     "ErrorResponse",
+    "IndicatorDataPoint",
+    "IndicatorResponse",
+    "ReturnDataPoint",
+    "ReturnsResponse",
+    "VolatilityDataPoint",
+    "VolatilityResponse",
+    "RiskMetricsResponse",
+    "RollingPerformancePoint",
+    "RollingPerformanceResponse",
+    "DailyReturnStats",
+    "AssetQuantSummaryResponse",
 ]

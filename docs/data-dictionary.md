@@ -70,13 +70,15 @@ The standardized dataset format used across all backend calculation engines (`go
 
 ## 4. Quantitative & Statistical Metrics Reference
 
-| Metric Name | Mathematical Definition | Interpretation |
-|---|---|---|
-| **Simple Moving Average (SMA)** | $\text{SMA}_n = \frac{1}{n}\sum_{i=0}^{n-1} P_{t-i}$ | Rolling trend baseline |
-| **Exponential Moving Average (EMA)** | $\text{EMA}_t = \alpha P_t + (1-\alpha)\text{EMA}_{t-1}$ | Responsive trend line ($\alpha = \frac{2}{n+1}$) |
-| **Daily Return** | $R_t = \frac{P_t - P_{t-1}}{P_{t-1}}$ | Arithmetic daily percentage gain/loss |
-| **Cumulative Return** | $CR_t = \prod_{i=1}^t (1 + R_i) - 1$ | Compounded total return from inception |
-| **Annualized Volatility** | $\sigma_{\text{ann}} = \sigma_{\text{daily}} \times \sqrt{N}$ | Standard deviation of returns scaled to year ($N=252$ or $365$) |
-| **Sharpe Ratio** | $\text{Sharpe} = \frac{R_p - R_f}{\sigma_p}$ | Risk-adjusted return excess of risk-free rate ($R_f=0.0$) |
-| **Maximum Drawdown (MDD)** | $\text{MDD} = \min_{\tau \le t} \frac{P_t - \max_{s \le \tau} P_s}{\max_{s \le \tau} P_s}$ | Peak-to-trough maximum percentage decline |
-| **Pearson Correlation** | $\rho_{X,Y} = \frac{\text{Cov}(X,Y)}{\sigma_X \sigma_Y}$ | Linear co-movement between asset returns |
+| Metric Name | API Field | Type | Unit / Format | Mathematical Definition | Annualization Factor | Interpretation |
+|---|---|---|---|---|---|---|
+| **Simple Moving Average** | `sma` | `float` / `null` | USD ($) | $\text{SMA}_n = \frac{1}{n}\sum_{i=0}^{n-1} P_{t-i}$ | N/A | Trend baseline over lookback period $n$ |
+| **Exponential Moving Average** | `ema` | `float` / `null` | USD ($) | $\text{EMA}_t = \alpha P_t + (1-\alpha)\text{EMA}_{t-1}$ | N/A | Exponentially smoothed trend line ($\alpha = \frac{2}{n+1}$) |
+| **Daily Return** | `daily_return` | `float` / `null` | Ratio (e.g. `0.02` = +2%) | $R_t = \frac{P_t - P_{t-1}}{P_{t-1}}$ | N/A | Single session arithmetic percentage return |
+| **Cumulative Return** | `cumulative_return` | `float` / `null` | Ratio (e.g. `1.50` = +150%) | $\text{CR}_t = \prod_{i=1}^t (1 + R_i) - 1$ | N/A | Compounded wealth growth of \$1 initial capital |
+| **Rolling Volatility** | `rolling_volatility` | `float` / `null` | Daily ratio | $\sigma_{\text{daily}} = \sqrt{\frac{\sum (R_t - \bar{R})^2}{w - 1}}$ | N/A | Historical rolling sample standard deviation ($w \ge 2$) |
+| **Annualized Volatility** | `annualized_volatility` | `float` / `null` | Annual ratio | $\sigma_{\text{ann}} = \sigma_{\text{daily}} \times \sqrt{N}$ | Gold/NVDA: 252, BTC: 365 | Volatility scaled to annual trading sessions |
+| **Sharpe Ratio** | `sharpe_ratio` | `float` / `null` | Dimensionless ratio | $\text{Sharpe} = \frac{\bar{R}_e}{\sigma_{R_e}} \times \sqrt{N}$ | Gold/NVDA: 252, BTC: 365 | Risk-adjusted excess return per unit volatility |
+| **Maximum Drawdown** | `maximum_drawdown` | `float` / `null` | Ratio $\le 0.0$ (e.g. `-0.25`) | $\text{MDD} = \min_{t} (\frac{P_t}{\text{Peak}_t} - 1)$ | N/A | Maximum observed peak-to-trough equity decline |
+| **Rolling Return** | `rolling_return` | `float` / `null` | Ratio | $\text{RR}_{w,t} = \frac{P_t}{P_{t-w}} - 1$ | N/A | $w$-period arithmetic price momentum |
+| **Running Peak** | `peak` | `float` | USD ($) | $\text{Peak}_t = \max_{0 \le \tau \le t} P_\tau$ | N/A | High-water mark of price / wealth series |

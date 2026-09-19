@@ -197,11 +197,213 @@ Retrieves filtered daily OHLCV time-series records across multiple assets from t
 
 ---
 
-## 3. Upcoming Endpoints (Scheduled by Phase)
+## 3. Quantitative Analysis Endpoints (Phase 4)
+
+The Quantitative Engine computes technical trend indicators, returns, volatility metrics, risk-adjusted performance (Sharpe ratio), drawdown curves, and rolling metrics strictly from verified historical datasets.
+
+---
+
+### `GET /api/v1/quant/{asset}/indicators`
+Calculates Simple Moving Average (SMA) and Exponential Moving Average (EMA) time-series for the specified asset.
+
+**Path Parameters**:
+- `asset` (string, required): Asset identifier (`Gold`, `Bitcoin`, `NVIDIA`).
+
+**Query Parameters**:
+- `sma_period` (integer, default: `20`, min: `1`, max: `1000`): Lookback period for SMA.
+- `ema_period` (integer, default: `20`, min: `1`, max: `1000`): Lookback period for EMA.
+- `start_date` (string `YYYY-MM-DD`, optional): Analysis window start date.
+- `end_date` (string `YYYY-MM-DD`, optional): Analysis window end date.
+
+**Example Request**:
+`GET /api/v1/quant/NVIDIA/indicators?sma_period=20&ema_period=50&start_date=2024-01-01&end_date=2024-01-10`
+
+**Response `200 OK`**:
+```json
+{
+  "asset": "NVIDIA",
+  "frequency": "daily",
+  "sma_period": 20,
+  "ema_period": 50,
+  "count": 6,
+  "data": [
+    {
+      "date": "2024-01-02",
+      "close": 48.14,
+      "sma": 48.52,
+      "ema": 47.91
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/v1/quant/{asset}/returns`
+Calculates arithmetic daily percentage returns and compounded cumulative return growth series.
+
+**Path Parameters**:
+- `asset` (string, required): Asset identifier (`Gold`, `Bitcoin`, `NVIDIA`).
+
+**Query Parameters**:
+- `start_date` (string `YYYY-MM-DD`, optional): Filter start date.
+- `end_date` (string `YYYY-MM-DD`, optional): Filter end date.
+
+**Response `200 OK`**:
+```json
+{
+  "asset": "Bitcoin",
+  "frequency": "daily",
+  "count": 365,
+  "data": [
+    {
+      "date": "2017-01-01",
+      "close": 997.75,
+      "daily_return": null,
+      "cumulative_return": 0.0
+    },
+    {
+      "date": "2017-01-02",
+      "close": 1012.54,
+      "daily_return": 0.0148,
+      "cumulative_return": 0.0148
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/v1/quant/{asset}/volatility`
+Calculates rolling daily volatility and rolling annualized volatility over a configurable window ($w \ge 2$). Annualization applies $N=365$ for Bitcoin and $N=252$ for Gold/NVIDIA.
+
+**Path Parameters**:
+- `asset` (string, required): Asset identifier (`Gold`, `Bitcoin`, `NVIDIA`).
+
+**Query Parameters**:
+- `window` (integer, default: `20`, min: `2`, max: `500`): Rolling lookback window in days.
+- `start_date` (string `YYYY-MM-DD`, optional): Filter start date.
+- `end_date` (string `YYYY-MM-DD`, optional): Filter end date.
+
+**Response `200 OK`**:
+```json
+{
+  "asset": "Gold",
+  "window": 20,
+  "annualization_factor": 252,
+  "count": 6358,
+  "data": [
+    {
+      "date": "2025-12-31",
+      "rolling_volatility": 0.0094,
+      "annualized_volatility": 0.1492
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/v1/quant/{asset}/risk-metrics`
+Returns annualized volatility, annualized Sharpe ratio (with configurable risk-free rate), and Maximum Drawdown (MDD).
+
+**Path Parameters**:
+- `asset` (string, required): Asset identifier (`Gold`, `Bitcoin`, `NVIDIA`).
+
+**Query Parameters**:
+- `risk_free_rate` (float, default: `0.0`): Annualized risk-free interest rate (e.g. `0.02` for 2%).
+- `start_date` (string `YYYY-MM-DD`, optional): Analysis start date.
+- `end_date` (string `YYYY-MM-DD`, optional): Analysis end date.
+
+**Response `200 OK`**:
+```json
+{
+  "asset": "NVIDIA",
+  "start_date": "1999-01-22",
+  "end_date": "2025-12-31",
+  "records": 6778,
+  "risk_free_rate": 0.0,
+  "annualization_factor": 252,
+  "annualized_volatility": 0.5962,
+  "sharpe_ratio": 0.8277,
+  "maximum_drawdown": -0.8972
+}
+```
+
+---
+
+### `GET /api/v1/quant/{asset}/rolling-performance`
+Computes synchronized rolling returns, rolling volatility, rolling Sharpe ratio, and drawdown curve over a configurable window.
+
+**Path Parameters**:
+- `asset` (string, required): Asset identifier (`Gold`, `Bitcoin`, `NVIDIA`).
+
+**Query Parameters**:
+- `window` (integer, default: `20`, min: `2`, max: `500`): Lookback window in days.
+- `risk_free_rate` (float, default: `0.0`): Annualized risk-free rate.
+- `start_date` (string `YYYY-MM-DD`, optional): Filter start date.
+- `end_date` (string `YYYY-MM-DD`, optional): Filter end date.
+
+**Response `200 OK`**:
+```json
+{
+  "asset": "Gold",
+  "window": 60,
+  "count": 6358,
+  "data": [
+    {
+      "date": "2025-12-31",
+      "rolling_return": 0.125,
+      "rolling_volatility": 0.162,
+      "rolling_sharpe": 1.45,
+      "drawdown": -0.042
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/v1/quant/{asset}/summary`
+Generates a comprehensive statistical profile including cumulative return, annualized risk metrics, and return distribution metrics.
+
+**Path Parameters**:
+- `asset` (string, required): Asset identifier (`Gold`, `Bitcoin`, `NVIDIA`).
+
+**Query Parameters**:
+- `risk_free_rate` (float, default: `0.0`): Annualized risk-free rate.
+- `start_date` (string `YYYY-MM-DD`, optional): Analysis start date.
+- `end_date` (string `YYYY-MM-DD`, optional): Analysis end date.
+
+**Response `200 OK`**:
+```json
+{
+  "asset": "Gold",
+  "start_date": "2000-08-30",
+  "end_date": "2025-12-31",
+  "records": 6358,
+  "latest_close": 4337.10,
+  "cumulative_return": 14.8346,
+  "annualized_volatility": 0.1739,
+  "sharpe_ratio": 0.7168,
+  "maximum_drawdown": -0.4436,
+  "return_statistics": {
+    "mean": 0.00048,
+    "std": 0.01095,
+    "min": -0.0935,
+    "max": 0.1024,
+    "positive_days": 3380,
+    "negative_days": 2940
+  }
+}
+```
+
+---
+
+## 4. Upcoming Endpoints (Scheduled by Phase)
 
 | Endpoint | Method | Phase | Description |
 |---|---|---|---|
-| `/api/v1/quant/indicators` | POST | Phase 4 | Calculate SMA, EMA, Volatility, Sharpe, Drawdown |
 | `/api/v1/quant/correlation` | POST | Phase 6 | Compute correlation matrices and rolling correlation |
 | `/api/v1/strategy/signals` | POST | Phase 7 | Generate trading signals for configured strategy |
 | `/api/v1/backtest/run` | POST | Phase 8 | Run portfolio backtest with transaction costs |
