@@ -2,9 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
-from app.database.repositories import BacktestRepository, AssetRepository
+from app.database.repositories import BacktestRepository, AssetRepository, MarketPriceRepository
 from app.schemas.backtest import BacktestRequest, BacktestResult
-from app.data.providers.csv_provider import CSVMarketProvider
 from app.backtesting.engine import BacktestEngine
 from app.strategies.sma_crossover import SMACrossoverStrategy
 from app.strategies.ema_trend import EMATrendStrategy
@@ -12,7 +11,6 @@ from app.strategies.momentum import MomentumBreakoutStrategy
 from app.strategies.mean_reversion import MeanReversionStrategy
 
 router = APIRouter(prefix="/backtest", tags=["Backtesting"])
-provider = CSVMarketProvider()
 
 STRATEGY_MAP = {
     "sma_crossover": SMACrossoverStrategy,
@@ -28,9 +26,31 @@ def run_backtest(req: BacktestRequest, db: Session = Depends(get_db)):
     and compares it against a passive Buy-and-Hold benchmark.
     Persists the run record and trade log into the database.
     """
-    bars = provider.get_historical_bars(req.symbol, req.start_date, req.end_date)
-    if not bars:
+    asset = AssetRepository.get_by_symbol(db, req.symbol)
+    if not asset:
         raise HTTPException(status_code=404, detail=f"No price data available for '{req.symbol}' in the selected date range.")
+
+    prices = MarketPriceRepository.get_prices_for_asset(
+        db,
+        asset.id,
+        req.start_date,
+        req.end_date
+    )
+    if not prices:
+        raise HTTPException(status_code=404, detail=f"No price data available for '{req.symbol}' in the selected date range.")
+
+    bars = [
+        {
+            "date": p.date,
+            "symbol": asset.symbol,
+            "open": p.open,
+            "high": p.high,
+            "low": p.low,
+            "close": p.close,
+            "volume": p.volume
+        }
+        for p in prices
+    ]
 
     strat_cls = STRATEGY_MAP.get(req.strategy_id.lower(), SMACrossoverStrategy)
     strategy_instance = strat_cls(req.parameters)
@@ -49,8 +69,7 @@ def run_backtest(req: BacktestRequest, db: Session = Depends(get_db)):
 
     # Attempt to persist in DB for historical tracking
     try:
-        asset_obj = AssetRepository.get_by_symbol(db, req.symbol)
-        asset_id = asset_obj.id if asset_obj else None
+        asset_id = asset.id
         
         db_payload = {
             "run_id": result["run_id"],

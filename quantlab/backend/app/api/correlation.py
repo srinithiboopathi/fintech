@@ -1,14 +1,18 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Dict, Any, List, Optional
-from app.data.providers.csv_provider import CSVMarketProvider
+from sqlalchemy.orm import Session
+from app.database.connection import get_db
+from app.database.repositories import AssetRepository, MarketPriceRepository
 from app.correlation.matrix import CorrelationMatrix
 from app.correlation.rolling import RollingCorrelation
 
 router = APIRouter(prefix="/correlation", tags=["Correlation Lab"])
-provider = CSVMarketProvider()
 
 @router.get("/matrix")
-def get_matrix(method: str = Query("pearson", description="Correlation method: 'pearson' or 'spearman'")) -> Dict[str, Any]:
+def get_matrix(
+    method: str = Query("pearson", description="Correlation method: 'pearson' or 'spearman'"),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
     """
     Computes aligned pairwise correlation matrix across Gold, Bitcoin, and NVIDIA
     based on historical percentage returns.
@@ -22,10 +26,22 @@ def get_matrix(method: str = Query("pearson", description="Correlation method: '
     
     asset_bars = {}
     for s in symbols:
-        bars = provider.get_historical_bars(s)
-        if not bars:
+        asset = AssetRepository.get_by_symbol(db, s)
+        if not asset:
             raise HTTPException(status_code=500, detail=f"Market data for asset '{s}' could not be loaded.")
-        asset_bars[s] = {b["date"]: b["daily_return"] for b in bars}
+
+        prices = MarketPriceRepository.get_prices_for_asset(db, asset.id)
+        if not prices:
+            raise HTTPException(status_code=500, detail=f"Market data for asset '{s}' could not be loaded.")
+
+        returns_map = {}
+        prev_close = None
+        for p in prices:
+            ret = (p.close - prev_close) / prev_close if prev_close is not None and prev_close > 0 else 0.0
+            prev_close = p.close
+            returns_map[p.date] = ret
+
+        asset_bars[s] = returns_map
 
     # Find common overlapping trading dates
     date_sets = [set(asset_bars[s].keys()) for s in symbols]
@@ -50,24 +66,41 @@ def get_matrix(method: str = Query("pearson", description="Correlation method: '
 def get_rolling_correlation(
     asset_a: str = Query("BTC-USD", description="First asset symbol (e.g., BTC, GOLD, NVDA)"),
     asset_b: str = Query("GC=F", description="Second asset symbol (e.g., GC=F, NVDA, BTC)"),
-    window: int = Query(30, ge=5, le=252, description="Rolling window size in trading days")
+    window: int = Query(30, ge=5, le=252, description="Rolling window size in trading days"),
+    db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
     Computes dynamic rolling pairwise correlation between two assets over a sliding window.
     """
-    norm_a = provider.normalize_symbol(asset_a)
-    norm_b = provider.normalize_symbol(asset_b)
+    obj_a = AssetRepository.get_by_symbol(db, asset_a)
+    obj_b = AssetRepository.get_by_symbol(db, asset_b)
 
-    bars_raw_a = provider.get_historical_bars(norm_a)
-    bars_raw_b = provider.get_historical_bars(norm_b)
-
-    if not bars_raw_a:
+    if not obj_a:
         raise HTTPException(status_code=404, detail=f"No data for symbol '{asset_a}'.")
-    if not bars_raw_b:
+    if not obj_b:
         raise HTTPException(status_code=404, detail=f"No data for symbol '{asset_b}'.")
 
-    bars_a = {b["date"]: b["daily_return"] for b in bars_raw_a}
-    bars_b = {b["date"]: b["daily_return"] for b in bars_raw_b}
+    prices_a = MarketPriceRepository.get_prices_for_asset(db, obj_a.id)
+    prices_b = MarketPriceRepository.get_prices_for_asset(db, obj_b.id)
+
+    if not prices_a:
+        raise HTTPException(status_code=404, detail=f"No data for symbol '{asset_a}'.")
+    if not prices_b:
+        raise HTTPException(status_code=404, detail=f"No data for symbol '{asset_b}'.")
+
+    bars_a = {}
+    prev_close_a = None
+    for p in prices_a:
+        ret = (p.close - prev_close_a) / prev_close_a if prev_close_a is not None and prev_close_a > 0 else 0.0
+        prev_close_a = p.close
+        bars_a[p.date] = ret
+
+    bars_b = {}
+    prev_close_b = None
+    for p in prices_b:
+        ret = (p.close - prev_close_b) / prev_close_b if prev_close_b is not None and prev_close_b > 0 else 0.0
+        prev_close_b = p.close
+        bars_b[p.date] = ret
 
     common_dates = sorted(list(set(bars_a.keys()) & set(bars_b.keys())))
     if len(common_dates) < window:
@@ -79,8 +112,8 @@ def get_rolling_correlation(
     rolling_series = RollingCorrelation.calculate_rolling(common_dates, rets_a, rets_b, window)
 
     return {
-        "asset_a": norm_a,
-        "asset_b": norm_b,
+        "asset_a": obj_a.symbol,
+        "asset_b": obj_b.symbol,
         "window": window,
         "total_points": len(rolling_series),
         "series": rolling_series
