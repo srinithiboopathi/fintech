@@ -93,6 +93,43 @@ class CacheManager:
             logger.error(f"Failed to write historical cache for {symbol}: {e}")
 
     # ----------------------------------------------------------------------
+    # Clean Historical Data Cache (24-Hour TTL)
+    # ----------------------------------------------------------------------
+    def get_clean_historical(self, symbol: str, max_age_hours: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """Retrieves cached clean historical data if fresh."""
+        max_age = max_age_hours if max_age_hours is not None else settings.HISTORICAL_CACHE_TTL_HOURS
+        path = self._get_path("clean", symbol)
+        if not path.exists():
+            return None
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            saved_at = cached.get("_cached_at", 0)
+            age_hours = (time.time() - saved_at) / 3600.0
+            if age_hours <= max_age:
+                logger.info(f"Cache HIT for clean historical {symbol} (age: {age_hours:.2f}h)")
+                return cached.get("payload")
+            return None
+        except Exception as e:
+            logger.warning(f"Error reading clean cache file {path}: {e}")
+            return None
+
+    def save_clean_historical(self, symbol: str, payload: Dict[str, Any]) -> None:
+        """Saves clean historical dataset payload to local disk."""
+        path = self._get_path("clean", symbol)
+        try:
+            container = {
+                "_cached_at": time.time(),
+                "symbol": symbol,
+                "payload": payload
+            }
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(container, f, indent=2)
+            logger.info(f"Saved clean historical cache for {symbol} to {path.name}")
+        except Exception as e:
+            logger.error(f"Failed to write clean cache for {symbol}: {e}")
+
+    # ----------------------------------------------------------------------
     # Latest Quote Cache (60-Second TTL)
     # ----------------------------------------------------------------------
     def get_latest(self, symbol: str, max_age_seconds: Optional[int] = None) -> Optional[Dict[str, Any]]:

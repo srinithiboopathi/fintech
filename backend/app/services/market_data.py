@@ -9,9 +9,14 @@ from app.models.schemas import (
     HistoricalDataResponse,
     LatestMarketDataResponse,
     AssetMetadata,
+    CleanHistoricalPoint,
+    DataQualityReport,
+    CleanMarketDataResponse,
+    DataSummaryResponse,
 )
 from app.services.cache_manager import cache_manager
 from app.services.twelve_data import twelve_data_service
+from app.services.data_cleaner import data_cleaning_service
 from app.utils.exceptions import (
     AlphaVantageAuthError,
     AlphaVantageRateLimitError,
@@ -631,5 +636,81 @@ class MarketDataService:
                 message=f"Failed to retrieve latest market data for {asset_name} ({symbol}) from primary and fallback providers.",
                 details={"symbol": symbol, "primary": settings.PRIMARY_PROVIDER}
             )
+
+    # ----------------------------------------------------------------------
+    # Step 3: Clean Historical Data & Summary APIs
+    # ----------------------------------------------------------------------
+    async def get_clean_data(
+        self,
+        asset_identifier: str,
+        refresh: bool = False
+    ) -> CleanMarketDataResponse:
+        """
+        Retrieves clean, validated, sorted, and quality-inspected historical data.
+        Reuses cached raw historical data to eliminate unnecessary API requests.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        # 1. Check clean cache first unless refresh requested
+        if not refresh:
+            cached_clean = cache_manager.get_clean_historical(symbol)
+            if cached_clean:
+                return CleanMarketDataResponse(**cached_clean)
+
+        # 2. Acquire inflight lock for clean computation
+        async with cache_manager._get_lock(f"clean_{symbol}"):
+            if not refresh:
+                cached_clean = cache_manager.get_clean_historical(symbol)
+                if cached_clean:
+                    return CleanMarketDataResponse(**cached_clean)
+
+            # 3. Retrieve raw historical data (from raw cache or live provider)
+            raw_response = await self.get_historical_data(asset_identifier=asset_identifier, refresh=refresh)
+
+            # 4. Clean and validate records
+            clean_points, quality_report = data_cleaning_service.clean_historical_records(
+                raw_records=raw_response.data,
+                asset_name=asset_name,
+                symbol=symbol,
+                source=raw_response.source
+            )
+
+            # 5. Assemble response
+            clean_response = CleanMarketDataResponse(
+                asset=asset_name,
+                symbol=symbol,
+                source=raw_response.source,
+                data_status="clean_verified",
+                count=len(clean_points),
+                quality_report=quality_report,
+                data=clean_points
+            )
+
+            # 6. Save clean payload in cache
+            cache_manager.save_clean_historical(symbol, clean_response.model_dump())
+            return clean_response
+
+    async def get_clean_summary(
+        self,
+        asset_identifier: str,
+        refresh: bool = False
+    ) -> DataSummaryResponse:
+        """
+        Retrieves concise executive summary of clean market data quality,
+        dates, missing counts, and latest close.
+        """
+        clean_data = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+        return data_cleaning_service.build_summary(
+            asset_name=clean_data.asset,
+            symbol=clean_data.symbol,
+            source=clean_data.source,
+            clean_points=clean_data.data,
+            report=clean_data.quality_report
+        )
 
 market_data_service = MarketDataService()

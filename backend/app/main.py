@@ -75,7 +75,9 @@ def create_app() -> FastAPI:
                 "health": "/health",
                 "assets": "/assets",
                 "historical": "/market/{asset}/historical",
-                "latest": "/market/{asset}/latest"
+                "latest": "/market/{asset}/latest",
+                "clean_data": "/market/{asset}/data",
+                "clean_summary": "/market/{asset}/data/summary"
             },
             "supported_assets": ["nvidia", "bitcoin", "gold"]
         }

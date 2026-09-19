@@ -7,7 +7,9 @@ from app.models.schemas import (
     HealthResponse,
     AssetsListResponse,
     HistoricalDataResponse,
-    LatestMarketDataResponse
+    LatestMarketDataResponse,
+    CleanMarketDataResponse,
+    DataSummaryResponse,
 )
 from app.services.market_data import market_data_service
 from app.services.cache_manager import cache_manager
@@ -101,6 +103,61 @@ async def get_latest_market_data(
     Clearly marked as 'latest_available' or 'delayed', never 'real-time'.
     """
     return await market_data_service.get_latest_data(
+        asset_identifier=asset,
+        refresh=refresh or False
+    )
+
+@router.get(
+    "/market/{asset}/data",
+    response_model=CleanMarketDataResponse,
+    summary="Get Clean, Validated Historical Market Data",
+    tags=["Clean Market Data"]
+)
+async def get_clean_market_data(
+    asset: str = Path(..., description="Asset name or symbol (e.g. 'nvidia', 'bitcoin', 'gold')"),
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local clean cache and re-process from provider"
+    )
+):
+    """
+    Retrieves clean, validated, and chronologically sorted historical market data.
+    - Duplicate timestamps removed
+    - Non-numeric or negative prices rejected
+    - OHLC relationship bounds verified
+    - Volume strictly preserved as null for spot crypto and gold bullion
+    - Reuses local cache; does NOT call external provider if valid cached data exists.
+    """
+    return await market_data_service.get_clean_data(
+        asset_identifier=asset,
+        refresh=refresh or False
+    )
+
+@router.get(
+    "/market/{asset}/data/summary",
+    response_model=DataSummaryResponse,
+    summary="Get Executive Clean Market Data Summary",
+    tags=["Clean Market Data"]
+)
+async def get_clean_market_data_summary(
+    asset: str = Path(..., description="Asset name or symbol (e.g. 'nvidia', 'bitcoin', 'gold')"),
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh evaluation"
+    )
+):
+    """
+    Returns executive summary of clean market data quality:
+    - Asset & symbol
+    - Provider source
+    - Total records
+    - Earliest and latest timestamps
+    - Missing-value breakdown (close, volume, invalid dropped)
+    - Duplicate count
+    - Latest close price
+    - Overall data quality rating
+    """
+    return await market_data_service.get_clean_summary(
         asset_identifier=asset,
         refresh=refresh or False
     )

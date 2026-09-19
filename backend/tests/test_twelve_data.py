@@ -37,7 +37,7 @@ def fetch_api_usage(api_key: str):
     except Exception:
         return None
 
-def test_symbol(symbol: str, api_key: str):
+def run_symbol_check(symbol: str, api_key: str):
     """
     Queries Twelve Data /quote and /time_series for the given symbol.
     Returns structured results matching the user's exact requirements.
@@ -115,7 +115,7 @@ def run_tests():
 
     for sym in targets:
         print(f"\n---> Testing symbol: {sym} ...")
-        res = test_symbol(sym, api_key)
+        res = run_symbol_check(sym, api_key)
         res["credits_used"] = credits_str
         results.append(res)
         time.sleep(1)  # Gentle spacing between requests
