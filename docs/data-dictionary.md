@@ -86,3 +86,22 @@ The standardized dataset format used across all backend calculation engines (`go
 | **Rolling Correlation** | `rolling_correlation` | `float` / `null` | Dimensionless $[-1.0, 1.0]$ | $r_t = \frac{\text{Cov}_w(R_A, R_B)}{\sigma_{A,w} \sigma_{B,w}}$ | N/A | Time-varying linear dependency over lookback window $w$ |
 | **Compound Annual Growth Rate** | `annualized_return` | `float` / `null` | Annual ratio | $\text{CAGR} = (1 + \text{CR})^{365.25 / \text{Days}} - 1$ | N/A | Geometric annualized return growth |
 | **Overlapping Observations** | `observations` / `aligned_records` | `integer` | Count | Count of joint active trading dates | N/A | Sample size used for statistical validity |
+
+---
+
+## 5. Strategy Engine Fields & Signal Semantics (Phase 6)
+
+| Field Name | API Key | Type | Possible Values / Unit | Description |
+|---|---|---|---|---|
+| **Strategy Identifier** | `strategy` | `string` | `sma_crossover`, `ema_trend`, `momentum`, `mean_reversion` | Quantitative strategy model identifier |
+| **Trading Signal** | `signal` | `string` (Enum) | `BUY`, `HOLD`, `SELL` | Discrete regime entry/exit crossing event |
+| **Fast SMA** | `fast_sma` | `float` / `null` | USD ($) | Moving average calculated over `fast_period` |
+| **Slow SMA** | `slow_sma` | `float` / `null` | USD ($) | Moving average calculated over `slow_period` |
+| **Short EMA** | `short_ema` | `float` / `null` | USD ($) | Exponential moving average over `short_period` span |
+| **Long EMA** | `long_ema` | `float` / `null` | USD ($) | Exponential moving average over `long_period` span |
+| **Continuous Momentum** | `momentum` | `float` / `null` | Percentage ratio | Rate of price change: $(P_t / P_{t-\text{lookback}}) - 1$ |
+| **Moving Average Baseline** | `moving_average` | `float` / `null` | USD ($) | Rolling arithmetic mean baseline for mean reversion |
+| **Deviation Ratio** | `deviation` | `float` / `null` | Ratio (e.g. `-0.03`) | Percentage deviation from baseline: $(P_t - \text{MA}_t) / \text{MA}_t$ |
+| **Deviation Threshold** | `threshold` | `float` | Ratio (e.g. `0.02`) | Minimum deviation required to trigger mean reversion signals |
+| **Signal Counts Breakdown** | `summary` | `object` | `{buy: N, sell: N, hold: N, total: N}` | Aggregate signal distribution for requested series |
+

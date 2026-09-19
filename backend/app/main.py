@@ -9,6 +9,7 @@ from backend.app.api.health import router as health_router
 from backend.app.api.market import router as market_router
 from backend.app.api.quant import router as quant_router
 from backend.app.api.correlation import router as correlation_router
+from backend.app.api.strategies import router as strategies_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -47,6 +48,8 @@ app.include_router(health_router, prefix=settings.API_V1_PREFIX)
 app.include_router(market_router, prefix=settings.API_V1_PREFIX)
 app.include_router(quant_router, prefix=settings.API_V1_PREFIX)
 app.include_router(correlation_router, prefix=settings.API_V1_PREFIX)
+app.include_router(strategies_router, prefix=settings.API_V1_PREFIX)
+
 
 
 if __name__ == "__main__":

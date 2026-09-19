@@ -564,12 +564,133 @@ Returns comparative risk, return, Sharpe, drawdown, and CAGR metrics across mult
 
 ---
 
-## 5. Upcoming Endpoints (Scheduled by Phase)
+---
+
+## 5. Strategy Engine Endpoints (Phase 6)
+
+The Strategy Engine provides deterministic, parameterized quantitative trading signal generators over historical market datasets (`Gold`, `Bitcoin`, `NVIDIA`). All calculations are strictly backward-looking, preserving full warm-up history before filtering.
+
+### Standardized Signal Semantics
+- **`BUY`**: Discrete crossing/entry event into a long/bullish regime.
+- **`SELL`**: Discrete crossing/exit event into a short/bearish regime.
+- **`HOLD`**: Inactive transition, warm-up phase, or sustained continuation of existing regime.
+
+---
+
+### `GET /api/v1/strategies/{asset}/sma-crossover`
+Calculates Simple Moving Average (SMA) Crossover trading signals.
+
+**Path Parameters**:
+- `asset` (string): Canonical asset name or alias (e.g. `Gold`, `Bitcoin`, `NVIDIA`).
+
+**Query Parameters**:
+- `fast_period` (integer, default: `20`, constraint: `ge=2`): Lookback period for fast SMA.
+- `slow_period` (integer, default: `50`, constraint: `ge=2`, `slow_period > fast_period`): Lookback period for slow SMA.
+- `start_date` (string `YYYY-MM-DD`, optional): Start date filter.
+- `end_date` (string `YYYY-MM-DD`, optional): End date filter.
+
+**Example Request**:
+`GET /api/v1/strategies/Gold/sma-crossover?fast_period=20&slow_period=50&start_date=2024-01-01`
+
+**Response `200 OK`**:
+```json
+{
+  "asset": "Gold",
+  "strategy": "sma_crossover",
+  "parameters": {
+    "fast_period": 20,
+    "slow_period": 50
+  },
+  "start_date": "2024-01-01",
+  "end_date": null,
+  "count": 501,
+  "summary": {
+    "buy": 4,
+    "sell": 3,
+    "hold": 494,
+    "total": 501
+  },
+  "data": [
+    {
+      "date": "2024-01-02",
+      "asset": "Gold",
+      "close": 2064.20,
+      "strategy": "sma_crossover",
+      "signal": "HOLD",
+      "fast_sma": 2045.15,
+      "slow_sma": 2010.80,
+      "short_ema": null,
+      "long_ema": null,
+      "momentum": null,
+      "moving_average": null,
+      "deviation": null
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/v1/strategies/{asset}/ema-trend`
+Calculates Exponential Moving Average (EMA) Trend trading signals.
+
+**Query Parameters**:
+- `short_period` (integer, default: `20`, constraint: `ge=2`): Span for short EMA.
+- `long_period` (integer, default: `50`, constraint: `ge=2`, `long_period > short_period`): Span for long EMA.
+- `start_date` (string `YYYY-MM-DD`, optional): Start date filter.
+- `end_date` (string `YYYY-MM-DD`, optional): End date filter.
+
+**Example Request**:
+`GET /api/v1/strategies/Bitcoin/ema-trend?short_period=20&long_period=50`
+
+---
+
+### `GET /api/v1/strategies/{asset}/momentum`
+Calculates $N$-period continuous momentum and zero-line crossing trading signals.
+
+**Query Parameters**:
+- `lookback` (integer, default: `20`, constraint: `ge=1`): Momentum lookback window.
+- `start_date` (string `YYYY-MM-DD`, optional): Start date filter.
+- `end_date` (string `YYYY-MM-DD`, optional): End date filter.
+
+**Example Request**:
+`GET /api/v1/strategies/NVIDIA/momentum?lookback=20`
+
+---
+
+### `GET /api/v1/strategies/{asset}/mean-reversion`
+Calculates rolling mean reversion deviation percentages and threshold entry/exit signals.
+
+**Query Parameters**:
+- `window` (integer, default: `20`, constraint: `ge=2`): Rolling moving average lookback window.
+- `threshold` (float, default: `0.02`, constraint: `gt=0.0`): Percentage deviation trigger threshold ($\theta = 0.02 \implies \pm 2\%$).
+- `start_date` (string `YYYY-MM-DD`, optional): Start date filter.
+- `end_date` (string `YYYY-MM-DD`, optional): End date filter.
+
+**Example Request**:
+`GET /api/v1/strategies/Gold/mean-reversion?window=20&threshold=0.02`
+
+---
+
+### `GET /api/v1/strategies/{asset}/signals`
+Unified dispatch endpoint supporting all quantitative trading strategies.
+
+**Query Parameters**:
+- `strategy` (string, required): Strategy identifier (`sma_crossover`, `ema_trend`, `momentum`, `mean_reversion`).
+- `fast_period`, `slow_period`, `short_period`, `long_period`, `lookback`, `window`, `threshold`: Strategy hyperparameters.
+- `start_date`, `end_date`: Date filters.
+
+**Example Request**:
+`GET /api/v1/strategies/NVIDIA/signals?strategy=sma_crossover&fast_period=20&slow_period=50`
+
+---
+
+## 6. Upcoming Endpoints (Scheduled by Phase)
 
 | Endpoint | Method | Phase | Description |
 |---|---|---|---|
-| `/api/v1/strategy/signals` | POST | Phase 7 | Generate trading signals for configured strategy |
-| `/api/v1/backtest/run` | POST | Phase 8 | Run portfolio backtest with transaction costs |
+| `/api/v1/backtest/run` | POST | Phase 7/8 | Run portfolio backtest with transaction costs |
 | `/api/v1/robustness/monte-carlo` | POST | Phase 11 | Parameter sensitivity & Monte Carlo simulations |
 | `/api/v1/regime/detect` | POST | Phase 12 | Classify market volatility and trend regimes |
 | `/api/v1/report/generate` | POST | Phase 13 | Generate downloadable research teardown report |
+

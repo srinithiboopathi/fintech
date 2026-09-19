@@ -33,6 +33,11 @@ from backend.app.schemas.correlation import (
     AssetComparisonMetrics,
     AssetComparisonResponse,
 )
+from backend.app.schemas.strategy import (
+    StrategySignalPoint,
+    SignalCounts,
+    StrategyResponse,
+)
 
 __all__ = [
     "MarketDataPoint",
@@ -61,4 +66,8 @@ __all__ = [
     "RollingCorrelationResponse",
     "AssetComparisonMetrics",
     "AssetComparisonResponse",
+    "StrategySignalPoint",
+    "SignalCounts",
+    "StrategyResponse",
 ]
+

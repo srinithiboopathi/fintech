@@ -2,15 +2,16 @@
 
 ## Current Status Overview
 
-- **Current Phase**: Phase 5 — Asset Comparison & Correlation Engine
+- **Current Phase**: Phase 6 — Strategy Engine
 - **Status**: Completed
 - **Current Git Branch**: `feature/quantlab-platform`
-- **Completed Phases**: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5
-- **Next Phase**: Phase 6 — Correlation Lab & Advanced Visual Matrix
+- **Completed Phases**: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6
+- **Next Phase**: Phase 7 — Backtesting Engine
 
 ---
 
 ## Phase Log
+
 
 ### Phase 0: Project Architecture and Repository Setup
 - **Goal**: Initialize clean full-stack repository structure, frontend React/Vite/Tailwind/ECharts foundation, backend FastAPI foundation with `GET /health`, project documentation, and Git safety protocols.
@@ -184,6 +185,44 @@
 
 ---
 
+### Phase 6: Strategy Engine
+- **Goal**: Build pure, deterministic quantitative trading strategy signal engines for SMA Crossover, EMA Trend, Momentum, and Mean Reversion over verified processed historical datasets (`Gold`, `Bitcoin`, `NVIDIA`), enforcing discrete crossing-event semantics, warm-up preservation across date slices, and strict look-ahead bias guards.
+- **Status**: Completed
+
+#### Modules & Files Created
+- `backend/app/strategies/__init__.py`
+- `backend/app/strategies/enums.py` (`SignalType`, `StrategyType`)
+- `backend/app/strategies/validation.py` (Parameter boundary and constraint validators)
+- `backend/app/strategies/sma_crossover.py` (Deterministic SMA crossing signal engine)
+- `backend/app/strategies/ema_trend.py` (Deterministic EMA crossing signal engine)
+- `backend/app/strategies/momentum.py` (Deterministic momentum zero-line crossing engine)
+- `backend/app/strategies/mean_reversion.py` (Deterministic deviation threshold signal engine)
+- `backend/app/schemas/strategy.py` (Standardized `StrategySignalPoint`, `SignalCounts`, and `StrategyResponse` schemas)
+- `backend/app/services/strategy_service.py` (`StrategyService` pipeline orchestrator)
+- `backend/app/api/strategies.py` (FastAPI router mounted under `/api/v1/strategies/`)
+- `backend/tests/test_strategy_math.py` (Unit tests for crossing logic, zero signals, warm-up, and look-ahead bias perturbation)
+- `backend/tests/test_strategy_api.py` (Integration tests for all strategy REST endpoints and parameter errors)
+- `docs/strategy-methodology.md` (Complete mathematical specifications, signal rules, and trade execution boundaries)
+
+#### Endpoints Implemented
+1. `GET /api/v1/strategies/{asset}/sma-crossover` — Fast/Slow SMA crossover signals.
+2. `GET /api/v1/strategies/{asset}/ema-trend` — Short/Long EMA trend crossover signals.
+3. `GET /api/v1/strategies/{asset}/momentum` — Rate-of-change momentum zero-line crossing signals.
+4. `GET /api/v1/strategies/{asset}/mean-reversion` — Deviation from rolling mean threshold signals.
+5. `GET /api/v1/strategies/{asset}/signals` — Unified multi-strategy dispatch endpoint.
+
+#### Verification & Test Results
+- **Full Pytest Suite**: 115/115 tests passed (100% pass rate).
+- **Look-Ahead Bias Test**: Passed (future price perturbations verified to cause zero change in past signals).
+- **Frontend Build**: `npm run build` completed successfully (0 errors, 2.09s).
+- **Data Integrity**: Verified read-only access on `datasets/raw/` and `datasets/processed/`.
+- **Git Branch Check**: Preserved on `feature/quantlab-platform`, zero automated commits/pushes.
+
+#### Known Issues
+- None.
+
+---
+
 ## Roadmap
 
 - [x] **Phase 0**: Project architecture and repository setup (Completed)
@@ -192,9 +231,9 @@
 - [x] **Phase 3**: Backend market-data APIs (Completed)
 - [x] **Phase 4**: Quantitative indicator engine (Completed)
 - [x] **Phase 5**: Asset Comparison & Correlation Engine (Completed)
-- [ ] **Phase 6**: Correlation Lab & Advanced Correlation Matrix UI
-- [ ] **Phase 7**: Strategy engine
-- [ ] **Phase 8**: Backtesting engine
+- [x] **Phase 6**: Strategy Engine (Completed)
+- [ ] **Phase 7**: Backtesting engine
+- [ ] **Phase 8**: Portfolio simulation & transaction costs
 - [ ] **Phase 9**: Trade history + performance metrics
 - [ ] **Phase 10**: Buy-and-Hold benchmark
 - [ ] **Phase 11**: Robustness Lab
@@ -205,3 +244,4 @@
 - [ ] **Phase 16**: Testing + error handling
 - [ ] **Phase 17**: Complete integration
 - [ ] **Phase 18**: Production polish + deployment
+
