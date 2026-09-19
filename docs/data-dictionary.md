@@ -82,3 +82,7 @@ The standardized dataset format used across all backend calculation engines (`go
 | **Maximum Drawdown** | `maximum_drawdown` | `float` / `null` | Ratio $\le 0.0$ (e.g. `-0.25`) | $\text{MDD} = \min_{t} (\frac{P_t}{\text{Peak}_t} - 1)$ | N/A | Maximum observed peak-to-trough equity decline |
 | **Rolling Return** | `rolling_return` | `float` / `null` | Ratio | $\text{RR}_{w,t} = \frac{P_t}{P_{t-w}} - 1$ | N/A | $w$-period arithmetic price momentum |
 | **Running Peak** | `peak` | `float` | USD ($) | $\text{Peak}_t = \max_{0 \le \tau \le t} P_\tau$ | N/A | High-water mark of price / wealth series |
+| **Pearson Correlation** | `correlation` | `float` / `null` | Dimensionless $[-1.0, 1.0]$ | $r = \frac{\text{Cov}(R_A, R_B)}{\sigma_A \sigma_B}$ | N/A | Linear co-movement between aligned daily asset returns |
+| **Rolling Correlation** | `rolling_correlation` | `float` / `null` | Dimensionless $[-1.0, 1.0]$ | $r_t = \frac{\text{Cov}_w(R_A, R_B)}{\sigma_{A,w} \sigma_{B,w}}$ | N/A | Time-varying linear dependency over lookback window $w$ |
+| **Compound Annual Growth Rate** | `annualized_return` | `float` / `null` | Annual ratio | $\text{CAGR} = (1 + \text{CR})^{365.25 / \text{Days}} - 1$ | N/A | Geometric annualized return growth |
+| **Overlapping Observations** | `observations` / `aligned_records` | `integer` | Count | Count of joint active trading dates | N/A | Sample size used for statistical validity |

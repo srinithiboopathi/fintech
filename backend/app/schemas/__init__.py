@@ -25,6 +25,14 @@ from backend.app.schemas.quant import (
     DailyReturnStats,
     AssetQuantSummaryResponse,
 )
+from backend.app.schemas.correlation import (
+    PairCorrelationResponse,
+    CorrelationMatrixResponse,
+    RollingCorrelationPoint,
+    RollingCorrelationResponse,
+    AssetComparisonMetrics,
+    AssetComparisonResponse,
+)
 
 __all__ = [
     "MarketDataPoint",
@@ -47,4 +55,10 @@ __all__ = [
     "RollingPerformanceResponse",
     "DailyReturnStats",
     "AssetQuantSummaryResponse",
+    "PairCorrelationResponse",
+    "CorrelationMatrixResponse",
+    "RollingCorrelationPoint",
+    "RollingCorrelationResponse",
+    "AssetComparisonMetrics",
+    "AssetComparisonResponse",
 ]

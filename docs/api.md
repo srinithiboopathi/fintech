@@ -400,11 +400,174 @@ Generates a comprehensive statistical profile including cumulative return, annua
 
 ---
 
-## 4. Upcoming Endpoints (Scheduled by Phase)
+## 4. Correlation & Asset Comparison Endpoints (Phase 5)
+
+The Correlation and Asset Comparison Engine computes cross-asset Pearson correlation matrices, pairwise metrics, rolling correlation curves, and comparative risk/return performance on strictly aligned historical market dates.
+
+---
+
+### `GET /api/v1/correlation/matrix`
+Calculates symmetric Pearson correlation matrix and pairwise observation counts across selected assets on overlapping return dates.
+
+**Query Parameters**:
+- `assets` (string, optional): Comma-separated asset list (e.g. `Gold,Bitcoin,NVIDIA`). Defaults to all assets.
+- `start_date` (string `YYYY-MM-DD`, optional): Earliest date filter.
+- `end_date` (string `YYYY-MM-DD`, optional): Latest date filter.
+
+**Example Request**:
+`GET /api/v1/correlation/matrix?assets=Gold,Bitcoin,NVIDIA`
+
+**Response `200 OK`**:
+```json
+{
+  "assets": ["Gold", "Bitcoin", "NVIDIA"],
+  "matrix": {
+    "Gold": {
+      "Gold": 1.0,
+      "Bitcoin": -0.0076,
+      "NVIDIA": 0.0026
+    },
+    "Bitcoin": {
+      "Gold": -0.0076,
+      "Bitcoin": 1.0,
+      "NVIDIA": 0.0326
+    },
+    "NVIDIA": {
+      "Gold": 0.0026,
+      "Bitcoin": 0.0326,
+      "NVIDIA": 1.0
+    }
+  },
+  "observation_counts": {
+    "Gold": { "Gold": 6357, "Bitcoin": 251, "NVIDIA": 6352 },
+    "Bitcoin": { "Gold": 251, "Bitcoin": 364, "NVIDIA": 251 },
+    "NVIDIA": { "Gold": 6352, "Bitcoin": 251, "NVIDIA": 6777 }
+  },
+  "start_date": "1999-01-22",
+  "end_date": "2025-12-31"
+}
+```
+
+---
+
+### `GET /api/v1/correlation/pair`
+Calculates pairwise Pearson correlation coefficient, active overlapping trading days, and date coverage between two assets.
+
+**Query Parameters**:
+- `asset_a` (string, required): First asset identifier (e.g. `Gold`).
+- `asset_b` (string, required): Second asset identifier (e.g. `Bitcoin`).
+- `start_date` (string `YYYY-MM-DD`, optional): Date filter start.
+- `end_date` (string `YYYY-MM-DD`, optional): Date filter end.
+
+**Example Request**:
+`GET /api/v1/correlation/pair?asset_a=Gold&asset_b=Bitcoin`
+
+**Response `200 OK`**:
+```json
+{
+  "asset_a": "Gold",
+  "asset_b": "Bitcoin",
+  "correlation": -0.0076,
+  "observations": 251,
+  "start_date": "2017-01-03",
+  "end_date": "2017-12-29"
+}
+```
+
+---
+
+### `GET /api/v1/correlation/rolling`
+Generates time-series of rolling Pearson correlation over a configurable window ($w \ge 2$) on aligned calendar dates.
+
+**Query Parameters**:
+- `asset_a` (string, required): First asset identifier (e.g. `Gold`).
+- `asset_b` (string, required): Second asset identifier (e.g. `NVIDIA`).
+- `window` (integer, default: `30`, min: `2`, max: `500`): Lookback window in days.
+- `start_date` (string `YYYY-MM-DD`, optional): Date filter start.
+- `end_date` (string `YYYY-MM-DD`, optional): Date filter end.
+
+**Example Request**:
+`GET /api/v1/correlation/rolling?asset_a=Gold&asset_b=NVIDIA&window=60`
+
+**Response `200 OK`**:
+```json
+{
+  "asset_a": "Gold",
+  "asset_b": "NVIDIA",
+  "window": 60,
+  "count": 6352,
+  "data": [
+    {
+      "date": "2025-12-31",
+      "correlation": 0.045
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/v1/correlation/comparison`
+Returns comparative risk, return, Sharpe, drawdown, and CAGR metrics across multiple assets with joint aligned record counts.
+
+**Query Parameters**:
+- `assets` (string, optional): Comma-separated asset list (e.g. `Gold,Bitcoin,NVIDIA`).
+- `start_date` (string `YYYY-MM-DD`, optional): Date filter start.
+- `end_date` (string `YYYY-MM-DD`, optional): Date filter end.
+
+**Example Request**:
+`GET /api/v1/correlation/comparison?assets=Gold,Bitcoin,NVIDIA`
+
+**Response `200 OK`**:
+```json
+{
+  "assets": [
+    {
+      "asset": "Gold",
+      "start_date": "2000-08-30",
+      "end_date": "2025-12-31",
+      "records": 6358,
+      "total_return": 14.8346,
+      "annualized_return": 0.1152,
+      "annualized_volatility": 0.1739,
+      "sharpe_ratio": 0.7168,
+      "maximum_drawdown": -0.4436
+    },
+    {
+      "asset": "Bitcoin",
+      "start_date": "2017-01-01",
+      "end_date": "2017-12-31",
+      "records": 365,
+      "total_return": 13.1802,
+      "annualized_return": 13.1802,
+      "annualized_volatility": 0.7486,
+      "sharpe_ratio": 3.737,
+      "maximum_drawdown": -0.3952
+    },
+    {
+      "asset": "NVIDIA",
+      "start_date": "1999-01-22",
+      "end_date": "2025-12-31",
+      "records": 6778,
+      "total_return": 454.492,
+      "annualized_return": 0.2523,
+      "annualized_volatility": 0.5962,
+      "sharpe_ratio": 0.8277,
+      "maximum_drawdown": -0.8972
+    }
+  ],
+  "start_date": "1999-01-22",
+  "end_date": "2025-12-31",
+  "aligned_records": 250
+}
+```
+
+---
+
+## 5. Upcoming Endpoints (Scheduled by Phase)
 
 | Endpoint | Method | Phase | Description |
 |---|---|---|---|
-| `/api/v1/quant/correlation` | POST | Phase 6 | Compute correlation matrices and rolling correlation |
 | `/api/v1/strategy/signals` | POST | Phase 7 | Generate trading signals for configured strategy |
 | `/api/v1/backtest/run` | POST | Phase 8 | Run portfolio backtest with transaction costs |
 | `/api/v1/robustness/monte-carlo` | POST | Phase 11 | Parameter sensitivity & Monte Carlo simulations |
