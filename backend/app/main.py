@@ -45,6 +45,24 @@ def create_app() -> FastAPI:
             }
         )
 
+    from fastapi.exceptions import RequestValidationError
+
+    # Validation Exception Handler (convert 422 to 400 Bad Request)
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        logger.error(f"Validation Error on {request.url.path}: {exc}")
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "BAD_REQUEST",
+                "message": "Malformed request parameters or invalid payload.",
+                "status_code": 400,
+                "details": exc.errors(),
+                "path": request.url.path,
+                "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            }
+        )
+
     # Fallback Exception Handler
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
@@ -82,7 +100,8 @@ def create_app() -> FastAPI:
                 "risk_metrics": "/market/{asset}/risk-metrics",
                 "risk_analysis": "/market/{asset}/risk-analysis",
                 "correlation": "/market/correlation",
-                "rolling_correlation": "/market/correlation/rolling"
+                "rolling_correlation": "/market/correlation/rolling",
+                "backtest": "/market/{asset}/backtest"
             },
 
 

@@ -3,8 +3,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2.6+-e92063.svg)](https://docs.pydantic.dev/)
-[![Pytest Tests](https://img.shields.io/badge/tests-84%20passed-success.svg)](#testing-instructions)
-[![Status](https://img.shields.io/badge/Milestone-Step%207%20Complete-emerald.svg)](#current-project-status)
+[![Pytest Tests](https://img.shields.io/badge/tests-110%20passed-success.svg)](#testing-instructions)
+[![Status](https://img.shields.io/badge/Milestone-Step%208%20Complete-emerald.svg)](#current-project-status)
 
 ---
 
@@ -82,6 +82,9 @@ $$r_{xy} = \frac{\sum_{i=1}^n (X_i - \bar{X})(Y_i - \bar{Y})}{\sqrt{\sum_{i=1}^n
 
 ### Rolling Correlation
 Computes dynamic causal co-movement across rolling windows ($W \ge 2$) with strict initial $W - 1$ warmup preservation.
+
+### Strategy-Agnostic Backtesting Engine
+Simulates historical portfolio performance using generic trading signals (`BUY`, `SELL`, `HOLD`) with **Next-Observation Execution** ($t \to t+1$ at $P_{t+1}$), fee-inclusive position sizing, cash conservation ($\text{Cash} \ge 0$), trade audit trails, and automated Buy-and-Hold benchmark comparison.
 
 ---
 
@@ -228,6 +231,7 @@ LATEST_CACHE_TTL_SECONDS=60
 | `GET` | `/market/{asset}/risk-analysis` | `risk_free_rate`, `annualization_factor`, `refresh` | Annualized Sharpe ratio & running peak Maximum Drawdown |
 | `GET` | `/market/correlation` | `refresh` | Pairwise symmetric Pearson correlation matrix across multi-asset returns |
 | `GET` | `/market/correlation/rolling` | `window`, `asset1`, `asset2`, `refresh` | Configurable rolling Pearson correlation time series across asset pairs |
+| `POST` | `/market/{asset}/backtest` | `refresh` | Strategy-agnostic portfolio backtest with Next-Observation execution |
 
 For complete schemas and examples, see [`docs/api.md`](docs/api.md).
 
@@ -251,8 +255,9 @@ pytest backend/tests -v
 - `backend/tests/test_risk_metrics.py` — Daily returns, rolling volatility, Bessel's correction (12 tests)
 - `backend/tests/test_risk_analysis.py` — Sharpe Ratio, Maximum Drawdown, running peak, error handling (12 tests)
 - `backend/tests/test_correlation.py` — Pearson matrix, date alignment, rolling series, HTTP 400 validation (19 tests)
+- `backend/tests/test_backtesting.py` — Backtesting engine, execution causality, accounting, fee modeling, benchmarks (26 tests)
 
-**Total: 84 automated tests (100% passing)**.
+**Total: 110 automated tests (100% passing)**.
 
 ---
 
@@ -268,7 +273,8 @@ pytest backend/tests -v
 | **Step 5.5: Structure Reorganization** | **COMPLETE** | Professional hackathon repository layout & documentation |
 | **Step 6: Sharpe Ratio & Drawdown** | **COMPLETE** | Annualized Sharpe Ratio and running peak Maximum Drawdown |
 | **Step 7: Correlation & Rolling Correlation** | **COMPLETE** | Multi-asset Pearson correlation matrix and rolling correlation series |
-| **Step 8+: Systematic Backtesting** | **NOT STARTED** | Reserved for subsequent milestone |
+| **Step 8: Strategy Backtesting Engine** | **COMPLETE** | Causal Next-Observation execution, accounting, fees, Buy & Hold benchmark |
+| **Step 9+: Systematic Trading Strategies** | **NOT STARTED** | Reserved for subsequent milestone |
 
 
 ---

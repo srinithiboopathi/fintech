@@ -3,7 +3,7 @@
 This document details the mathematical models, formulas, statistical assumptions, and numerical implementations active in the **Quantexa** analytics platform.
 
 > [!NOTE]
-> This document describes the currently implemented quantitative algorithms (Steps 1–7). Future analytical models (such as systematic backtesting) are reserved for subsequent steps.
+> This document describes the currently implemented quantitative algorithms (Steps 1–8). Future algorithmic models (such as specific systematic strategy rules) are reserved for subsequent steps.
 
 ---
 
@@ -195,11 +195,64 @@ Tracks dynamic co-movement over a configurable rolling lookback window of $W$ ob
 
 ---
 
+## 6. Strategy-Agnostic Backtesting Engine
+
+The **Quantexa** backtesting engine is a modular, event-driven, strategy-agnostic simulation service designed to model realistic trading performance over historical market data.
+
+### 1. Strategy-Agnostic Signal Model
+The engine operates independently of specific trading rules or indicators. It ingests an aligned sequence of generic trading directives:
+- **`BUY`**: Enter a long position using available cash scaled by `allocation_fraction`.
+- **`SELL`**: Fully liquidate existing asset holdings into cash.
+- **`HOLD`**: Maintain existing portfolio state without executing trades.
+
+### 2. Next-Observation Execution Assumption (Zero Look-Ahead Bias)
+In live trading, a signal calculated using the closing price at observation $t$ cannot be executed at $t$ because the market has already closed. 
+Therefore, the engine enforces a strict causal execution contract:
+$$\text{Signal generated at time } t \implies \text{Executed at time } t + 1 \text{ at Close Price } P_{t+1}$$
+This structural constraint guarantees zero look-ahead bias. Past trade executions and equity snapshots remain strictly invariant to future price perturbations.
+
+### 3. Position Sizing & Cash Invariants
+- **Target Cash Allocation**:
+  $$\text{Cash Committed} = \text{Cash}_t \times \text{allocation\_fraction}$$
+  Where $\text{allocation\_fraction} \in (0.0, 1.0]$ (default: $1.0 = 100\%$).
+- **Fee-Aware Sizing**:
+  To prevent overspending and guarantee $\text{Cash} \ge 0$, transaction costs are incorporated directly into position sizing:
+  $$\text{Quantity} = \frac{\text{Cash Committed}}{P_{t+1} \times (1 + \text{fee\_rate})}$$
+- **Capital Conservation**: No borrowing, margin, or short selling is permitted. If available cash is zero or insufficient, subsequent `BUY` signals are ignored without creating negative cash.
+
+### 4. Transaction Cost Model
+Transaction costs are applied symmetrically across all `BUY` and `SELL` executions:
+$$\text{Transaction Fee} = \text{Trade Value} \times \text{transaction\_cost\_rate}$$
+Where $\text{Trade Value} = \text{Quantity} \times P_{\text{exec}}$, and $\text{transaction\_cost\_rate} \ge 0$ (default: $0.001 = 0.1\%$).
+- **On `BUY`**: Cash deducted = $\text{Trade Value} + \text{Fee} = \text{Cash Committed}$.
+- **On `SELL`**: Cash credited = $\text{Trade Value} - \text{Fee}$.
+
+### 5. Portfolio Accounting & Valuation
+At every historical observation $t$, the portfolio is marked to market:
+$$\text{Market Value}_t = \text{Position Quantity}_t \times P_t$$
+$$\text{Portfolio Value}_t = \text{Cash}_t + \text{Market Value}_t$$
+$$\text{Daily Return}_t = \frac{\text{Portfolio Value}_t - \text{Portfolio Value}_{t-1}}{\text{Portfolio Value}_{t-1}} \times 100$$
+At inception ($t = 0$), $\text{Portfolio Value}_0 = \text{Initial Capital}$, $\text{Cash}_0 = \text{Initial Capital}$, and $\text{Position}_0 = 0$.
+
+### 6. Trade Audit History & Realized PnL
+Every executed transaction logs an immutable audit trail:
+- Timestamp, side (`BUY` / `SELL`), execution price, quantity, gross trade value, fee paid, resulting cash, and resulting position.
+- On `SELL` executions, realized dollar profit/loss ($\text{PnL} = \text{Proceeds} - \text{Cost Basis}$) and return percentage ($\text{PnL\%}$) are recorded to track winning vs losing trades.
+
+### 7. Buy-and-Hold Benchmark
+For performance evaluation, each backtest simulates an identical baseline Buy-and-Hold benchmark:
+- Buys the underlying asset at the first execution opportunity ($P_1$) using initial capital and applying identical transaction fees.
+- Holds until the final observation $N-1$, providing a true passive baseline to measure strategy alpha.
+
+---
+
 ## Summary of Quantitative Invariants
 
 | Invariant | Implementation Mechanism |
 | :--- | :--- |
-| **No Look-Ahead Bias** | Running peak $\text{Peak}_t = \max_{i \le t}(P_i)$ and rolling correlation slice $[t - W + 1 : t + 1]$ depend strictly on past/current data. |
+| **No Look-Ahead Bias** | Signal at $t$ executes at $t+1$ at $P_{t+1}$; running peak and rolling slices depend strictly on past data. |
+| **Capital Conservation** | Fee-inclusive position sizing guarantees $\text{Cash} \ge 0$ at all times; no leverage or shorting. |
+| **Symmetric Transaction Costs** | Configurable fee percentage applied on both entry (`BUY`) and exit (`SELL`). |
 | **Missing Value Safety** | Explicit `None` propagation; never interpolated or zero-filled. |
 | **Bessel's Correction** | Sample variance denominator is $m - 1$, preventing sample bias. |
 | **Zero Variance Protection** | Safely evaluates to `None` if $\sigma = 0.0$ or denominator evaluates to zero. |

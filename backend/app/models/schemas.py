@@ -277,5 +277,100 @@ class RollingCorrelationResponse(BaseModel):
     pairs: List[RollingPairSeries] = Field(default_factory=list, description="Rolling correlation time series for each pairwise combination")
 
 
+# ==============================================================================
+# Step 8: Strategy-Agnostic Backtesting Models
+# ==============================================================================
+
+class SignalPoint(BaseModel):
+    """Trading signal observation."""
+    timestamp: str = Field(..., description="ISO-8601 UTC timestamp corresponding to historical observation")
+    signal: str = Field(..., description="Signal directive: 'BUY', 'SELL', or 'HOLD'")
+
+
+class BacktestRequest(BaseModel):
+    """Configuration payload for backtest execution."""
+    initial_capital: Optional[float] = Field(100000.0, description="Initial investment capital in base currency (must be > 0, default 100,000.0)")
+    transaction_cost_rate: Optional[float] = Field(0.001, description="Per-trade transaction cost percentage fraction (must be >= 0, default 0.001 = 0.1%)")
+    allocation_fraction: Optional[float] = Field(1.0, description="Fraction of available cash to invest on BUY (must be in (0, 1], default 1.0 = 100%)")
+    signals: Optional[List[SignalPoint]] = Field(None, description="Optional sequence of trading signals aligned with historical data")
+
+
+class TradeRecord(BaseModel):
+    """Individual executed transaction record."""
+    trade_id: int = Field(..., description="Chronological trade index (1-based)")
+    timestamp: str = Field(..., description="ISO-8601 timestamp of execution (time t+1)")
+    side: str = Field(..., description="Trade side: 'BUY' or 'SELL'")
+    price: float = Field(..., description="Execution close price at time of execution")
+    quantity: float = Field(..., description="Asset units / shares transacted")
+    trade_value: float = Field(..., description="Gross value of trade (price * quantity)")
+    transaction_cost: float = Field(..., description="Fee deducted for trade execution")
+    resulting_cash: float = Field(..., description="Cash balance immediately following trade")
+    resulting_position: float = Field(..., description="Total position units held following trade")
+    pnl: Optional[float] = Field(None, description="Realized dollar PnL for closed trade (populated on SELL)")
+    pnl_percent: Optional[float] = Field(None, description="Realized percentage PnL for closed trade (populated on SELL)")
+
+
+class PortfolioObservation(BaseModel):
+    """Daily portfolio accounting and valuation snapshot."""
+    timestamp: str = Field(..., description="ISO-8601 timestamp of observation")
+    close_price: float = Field(..., description="Market close price at observation")
+    signal: str = Field(..., description="Signal directive generated at this observation ('BUY', 'SELL', 'HOLD')")
+    executed_action: str = Field(..., description="Action executed at this observation ('BUY', 'SELL', 'HOLD', 'NONE')")
+    cash: float = Field(..., description="Cash balance in portfolio")
+    position_quantity: float = Field(..., description="Asset position units held")
+    position_market_value: float = Field(..., description="Current market value of asset position")
+    transaction_cost: float = Field(..., description="Transaction fees incurred on this observation")
+    portfolio_value: float = Field(..., description="Total portfolio equity value (cash + position_market_value)")
+    portfolio_return_pct: Optional[float] = Field(None, description="Daily percentage change in portfolio value")
+
+
+class BenchmarkPoint(BaseModel):
+    """Benchmark equity observation."""
+    timestamp: str = Field(..., description="ISO-8601 timestamp")
+    portfolio_value: float = Field(..., description="Benchmark equity value")
+    total_return_pct: float = Field(..., description="Cumulative percentage return of benchmark from inception")
+
+
+class BenchmarkResults(BaseModel):
+    """Benchmark comparison performance metrics (Buy-and-Hold)."""
+    benchmark_name: str = Field(default="Buy & Hold", description="Name of benchmark strategy")
+    initial_value: float = Field(..., description="Initial capital allocated to benchmark")
+    final_value: float = Field(..., description="Final equity value of benchmark")
+    total_return_pct: float = Field(..., description="Total percentage return of benchmark")
+    equity_curve: List[BenchmarkPoint] = Field(default_factory=list, description="Benchmark historical equity curve")
+
+
+class BacktestPerformance(BaseModel):
+    """Executive portfolio performance metrics."""
+    initial_capital: float = Field(..., description="Starting investment capital")
+    final_portfolio_value: float = Field(..., description="Final portfolio liquidation / market value")
+    total_return_pct: float = Field(..., description="Total cumulative strategy return percentage")
+    total_trades: int = Field(..., description="Total number of executed trades (BUY + SELL)")
+    winning_trades: int = Field(..., description="Number of round-trip trades with positive realized PnL")
+    losing_trades: int = Field(..., description="Number of round-trip trades with negative realized PnL")
+    win_rate_pct: Optional[float] = Field(None, description="Percentage of profitable completed trades")
+    total_fees_paid: float = Field(..., description="Total transaction fees incurred across backtest")
+    maximum_drawdown_pct: Optional[float] = Field(None, description="Maximum peak-to-trough equity decline percentage")
+    maximum_drawdown_timestamp: Optional[str] = Field(None, description="Timestamp where maximum drawdown occurred")
+    sharpe_ratio: Optional[float] = Field(None, description="Annualized Sharpe ratio of strategy daily returns")
+
+
+class BacktestResponse(BaseModel):
+    """Comprehensive backtest simulation response payload."""
+    asset: str = Field(..., description="Asset display name")
+    symbol: str = Field(..., description="Market ticker symbol")
+    source: str = Field(default="Twelve Data", description="Market data provider source")
+    data_status: str = Field(default="calculated", description="Data processing status")
+    execution_model: str = Field(
+        default="Next-Observation (Signal at t executes at t+1)",
+        description="Causal order execution assumption"
+    )
+    performance: BacktestPerformance = Field(..., description="Executive performance and risk statistics")
+    benchmark: BenchmarkResults = Field(..., description="Buy-and-Hold benchmark comparison")
+    trade_history: List[TradeRecord] = Field(default_factory=list, description="Chronological log of executed trades")
+    equity_curve: List[PortfolioObservation] = Field(default_factory=list, description="Daily portfolio equity and accounting series")
+
+
+
 
 

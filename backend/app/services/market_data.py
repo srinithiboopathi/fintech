@@ -18,6 +18,8 @@ from app.models.schemas import (
     RiskAnalysisResponse,
     CorrelationMatrixResponse,
     RollingCorrelationResponse,
+    BacktestRequest,
+    BacktestResponse,
 )
 from app.services.cache_manager import cache_manager
 from app.services.twelve_data import twelve_data_service
@@ -26,6 +28,7 @@ from app.services.indicators import indicator_service
 from app.services.risk_metrics import risk_metrics_service
 from app.services.risk_analysis import risk_analysis_service
 from app.services.correlation import correlation_service
+from app.services.backtesting import backtesting_service
 
 
 from app.utils.exceptions import (
@@ -931,6 +934,35 @@ class MarketDataService:
             window=window,
             asset1=canon1,
             asset2=canon2
+        )
+
+    # ----------------------------------------------------------------------
+    # Step 8: Strategy-Agnostic Backtesting Engine
+    # ----------------------------------------------------------------------
+    async def run_backtest(
+        self,
+        asset_identifier: str,
+        request: BacktestRequest,
+        refresh: bool = False
+    ) -> BacktestResponse:
+        """
+        Executes a strategy-agnostic backtesting simulation on cleaned historical market data
+        for NVIDIA, Bitcoin, or Gold. Uses cached Step 3 clean data.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+
+        return backtesting_service.run_simulation(
+            asset=asset_name,
+            symbol=symbol,
+            clean_points=clean_resp.data,
+            request=request
         )
 
 market_data_service = MarketDataService()

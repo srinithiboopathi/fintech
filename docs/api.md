@@ -21,6 +21,7 @@ Base URL: `http://127.0.0.1:8000`
 | `GET` | [`/market/{asset}/risk-analysis`](#9-quantitative-risk-analysis-sharpe-ratio--maximum-drawdown) | Annualized Sharpe ratio and continuous Maximum Drawdown |
 | `GET` | [`/market/correlation`](#10-multi-asset-pearson-correlation-matrix) | Pairwise symmetric Pearson correlation matrix across multi-asset returns |
 | `GET` | [`/market/correlation/rolling`](#11-rolling-pearson-correlation) | Configurable rolling Pearson correlation time series across asset pairs |
+| `POST` | [`/market/{asset}/backtest`](#12-strategy-agnostic-portfolio-backtesting) | Generic historical portfolio simulation with Next-Observation execution |
 
 ---
 
@@ -560,11 +561,108 @@ Calculates rolling Pearson correlation time series across asset pairs over a con
 
 ---
 
+## 12. Strategy-Agnostic Portfolio Backtesting
+
+### `POST /market/{asset}/backtest`
+
+Simulates historical portfolio performance using a generic sequence of trading signals (`BUY`, `SELL`, `HOLD`) and configurable parameters (capital, fee rate, allocation fraction).
+
+**Next-Observation Execution Assumption**:
+A signal generated at historical observation $t$ executes at observation $t+1$ at close price $P_{t+1}$, strictly eliminating look-ahead bias.
+
+#### Path Parameters
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :---: | :--- |
+| `asset` | `string` | Yes | Target asset identifier: `nvidia`, `bitcoin`, `gold` |
+
+#### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `refresh` | `boolean` | No | `false` | Bypass local cache and force fresh data calculation |
+
+#### Request Body (`application/json`)
+
+```json
+{
+  "initial_capital": 100000.0,
+  "transaction_cost_rate": 0.001,
+  "allocation_fraction": 1.0,
+  "signals": [
+    {
+      "timestamp": "2026-08-07T00:00:00Z",
+      "signal": "BUY"
+    },
+    {
+      "timestamp": "2026-08-25T00:00:00Z",
+      "signal": "SELL"
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Default | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `initial_capital` | `float` | No | `100000.0` | Initial starting capital (must be $> 0$) |
+| `transaction_cost_rate` | `float` | No | `0.001` | Transaction fee percentage rate per trade (must be $\ge 0$) |
+| `allocation_fraction` | `float` | No | `1.0` | Fraction of cash deployed on BUY (must be in $(0.0, 1.0]$) |
+| `signals` | `list` | Yes | - | Chronological array of `{ timestamp, signal }` points |
+
+#### Response: `200 OK`
+```json
+{
+  "asset": "NVIDIA",
+  "symbol": "NVDA",
+  "source": "Twelve Data",
+  "data_status": "calculated",
+  "execution_model": "Next-Observation (Signal at t executes at t+1)",
+  "performance": {
+    "initial_capital": 100000.0,
+    "final_portfolio_value": 101281.95,
+    "total_return_pct": 1.28,
+    "total_trades": 2,
+    "winning_trades": 1,
+    "losing_trades": 0,
+    "win_rate_pct": 100.0,
+    "total_fees_paid": 201.28,
+    "maximum_drawdown_pct": -7.47,
+    "maximum_drawdown_timestamp": "2026-08-24T00:00:00Z",
+    "sharpe_ratio": 0.4755
+  },
+  "benchmark": {
+    "benchmark_name": "Buy & Hold",
+    "initial_value": 100000.0,
+    "final_value": 99150.0,
+    "total_return_pct": -0.85,
+    "equity_curve": [...]
+  },
+  "trade_history": [
+    {
+      "trade_id": 1,
+      "timestamp": "2026-08-10T00:00:00Z",
+      "side": "BUY",
+      "price": 104.97,
+      "quantity": 951.70,
+      "trade_value": 99900.10,
+      "transaction_cost": 99.90,
+      "resulting_cash": 0.0,
+      "resulting_position": 951.70,
+      "pnl": null,
+      "pnl_percent": null
+    }
+  ],
+  "equity_curve": [...]
+}
+```
+
+---
+
 ## Common Error Codes
 
 | Status Code | Reason | Cause |
 | :--- | :--- | :--- |
-| `400 Bad Request` | Invalid Parameter | Provided `sma_period`, `ema_period`, `volatility_period`, or correlation `window` is invalid ($< 1$ or $< 2$). |
+| `400 Bad Request` | Invalid Parameter | Provided parameter (`initial_capital`, `transaction_cost_rate`, `allocation_fraction`, `signals`, or `window`) is invalid or out of bounds. |
 | `404 Not Found` | Unsupported Asset | Requested asset identifier is not mapped to NVDA, BTC/USD, or XAU/USD. |
 | `502 Bad Gateway` | Upstream API Error | Upstream market data provider failed or rate limit exceeded with no valid cache. |
 | `504 Gateway Timeout` | Provider Timeout | Upstream provider failed to respond within connection timeout window. |

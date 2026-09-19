@@ -170,5 +170,21 @@ class InvalidCorrelationWindowError(AlphaVantageBaseException):
             details=details
         )
 
+# Step 8: Backtesting Exceptions
+class InvalidBacktestParameterError(AlphaVantageBaseException):
+    """Raised when an invalid backtesting parameter or signal sequence is supplied."""
+    def __init__(
+        self,
+        message: str = "Invalid backtesting parameter: check initial_capital (> 0), transaction_cost_rate (>= 0), allocation_fraction (0 < alloc <= 1), and signal formats.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INVALID_BACKTEST_PARAMETER",
+            details=details
+        )
+
+
 
 

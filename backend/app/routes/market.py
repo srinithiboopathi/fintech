@@ -17,6 +17,8 @@ from app.models.schemas import (
     RiskAnalysisResponse,
     CorrelationMatrixResponse,
     RollingCorrelationResponse,
+    BacktestRequest,
+    BacktestResponse,
 )
 from app.services.market_data import market_data_service
 from app.services.cache_manager import cache_manager
@@ -25,6 +27,7 @@ from app.utils.exceptions import (
     InvalidVolatilityPeriodError,
     InvalidRiskAnalysisParameterError,
     InvalidCorrelationWindowError,
+    InvalidBacktestParameterError,
 )
 
 router = APIRouter()
@@ -454,6 +457,38 @@ async def get_market_rolling_correlation(
         window=valid_window,
         asset1=asset1,
         asset2=asset2,
+        refresh=refresh or False
+    )
+
+
+# ------------------------------------------------------------------------------
+# Step 8: Strategy-Agnostic Backtesting Engine Endpoint
+# ------------------------------------------------------------------------------
+@router.post(
+    "/market/{asset}/backtest",
+    response_model=BacktestResponse,
+    summary="Run Strategy-Agnostic Portfolio Backtest",
+    tags=["Backtesting Engine"]
+)
+async def run_market_backtest(
+    asset: str = Path(..., description="Target asset identifier: 'nvidia', 'bitcoin', or 'gold'"),
+    request: BacktestRequest = ...,
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Executes a strategy-agnostic backtesting simulation on cleaned historical market data
+    for NVIDIA, Bitcoin, or Gold.
+
+    Next-Observation Execution Assumption:
+    Signals generated using information available at observation t execute at observation t+1
+    at Close price P_{t+1}, strictly preventing look-ahead bias.
+    """
+    return await market_data_service.run_backtest(
+        asset_identifier=asset,
+        request=request,
         refresh=refresh or False
     )
 
