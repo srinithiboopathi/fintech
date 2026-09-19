@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.core.config import settings
 from backend.app.api.health import router as health_router
+from backend.app.api.market import router as market_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -41,6 +42,7 @@ def root():
 
 # API v1 routes
 app.include_router(health_router, prefix=settings.API_V1_PREFIX)
+app.include_router(market_router, prefix=settings.API_V1_PREFIX)
 
 
 if __name__ == "__main__":
