@@ -633,10 +633,10 @@ class QuantexaApp {
 
     // Default params per strategy
     let params = {};
-    if (stratName === 'sma_crossover') params = { fast_period: 10, slow_period: 30 };
-    else if (stratName === 'ema_trend') params = { fast_period: 12, slow_period: 26 };
-    else if (stratName === 'momentum') params = { lookback_period: 10, threshold: 0.0 };
-    else if (stratName === 'mean_reversion') params = { period: 20, num_std: 2.0 };
+    if (stratName === 'sma_crossover') params = { fast_period: 3, slow_period: 8 };
+    else if (stratName === 'ema_trend') params = { fast_period: 3, slow_period: 8 };
+    else if (stratName === 'momentum') params = { lookback_period: 3, threshold: 0.0 };
+    else if (stratName === 'mean_reversion') params = { period: 5, num_std: 1.0 };
 
     const payload = {
       strategy: stratName,
