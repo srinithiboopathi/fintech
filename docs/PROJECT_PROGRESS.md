@@ -2,15 +2,88 @@
 
 ## Current Status Overview
 
-- **Current Phase**: Phase 7 — Backtesting Engine & Realistic Portfolio Simulation
+- **Current Phase**: Phase 8 — Strategy Robustness Lab & Market Regime Analysis
 - **Status**: Completed
 - **Current Git Branch**: `feature/quantlab-platform`
-- **Completed Phases**: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7
-- **Next Phase**: Phase 8 — Portfolio Simulation & Transaction Cost Deep-Dive / Phase 9 Strategy Dashboard UI
+- **Completed Phases**: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7, Phase 8
+- **Next Phase**: Phase 9 — Strategy Dashboard UI & Interactive Visualizations
 
 ---
 
 ## Phase Log
+
+### Phase 8: Strategy Robustness Lab & Market Regime Analysis
+- **Goal**: Implement multi-parameter sensitivity sweeps across strategy grids, transaction friction rates, and sub-period date ranges (Part A), and deterministic quantitative trend/volatility market regime classification with historical descriptive vs causal expanding thresholds, transition tracking, and segment statistics (Part B).
+- **Status**: Completed
+
+#### Files Created
+- `backend/app/robustness/models.py` (Data models for backtest configuration and execution result records)
+- `backend/app/robustness/validation.py` (Grid size validation, safety limit enforcement `MAX_CONFIGURATIONS=100`, parameter checks)
+- `backend/app/robustness/parameter_grid.py` (Cartesian product generator for parameters, transaction costs, and date windows)
+- `backend/app/robustness/runner.py` (Robustness sweep execution pipeline invoking Phase 7 `BacktestEngine`)
+- `backend/app/robustness/comparison.py` (Descriptive metric range summarization: return, Sharpe, drawdown, trade counts, win rate)
+- `backend/app/robustness/__init__.py` (Package exports)
+- `backend/app/schemas/robustness.py` (Pydantic v2 schemas: `RobustnessRequest`, `RobustnessResponse`, `RobustnessSummary`, etc.)
+- `backend/app/services/robustness_service.py` (`RobustnessService` orchestrator)
+- `backend/app/api/robustness.py` (FastAPI router mounted under `/api/v1/robustness/`)
+- `backend/app/regimes/enums.py` (`MarketRegime`, `VolatilityState`, `ThresholdMode`)
+- `backend/app/regimes/validation.py` (Regime parameter validation for trend/volatility windows and threshold mode)
+- `backend/app/regimes/classification.py` (Deterministic moving average trend and annualized rolling volatility classification)
+- `backend/app/regimes/statistics.py` (Empirical segment statistics and chronological state transition detector)
+- `backend/app/regimes/__init__.py` (Package exports)
+- `backend/app/schemas/regimes.py` (Pydantic v2 schemas: `RegimeResponse`, `RegimeDataPoint`, `RegimeSummaryStatistics`, etc.)
+- `backend/app/services/regime_service.py` (`RegimeService` orchestrator)
+- `backend/app/api/regimes.py` (FastAPI router mounted under `/api/v1/regimes/`)
+- `backend/tests/test_robustness.py` (Unit tests for parameter combinations, safety limits, deterministic execution, and constraints)
+- `backend/tests/test_robustness_api.py` (Integration tests for POST `/api/v1/robustness/run` and GET `/api/v1/robustness/strategies`)
+- `backend/tests/test_regimes.py` (Unit tests for trend/volatility classification, threshold modes, statistics, transitions, and look-ahead bias)
+- `backend/tests/test_regimes_api.py` (Integration tests for GET `/api/v1/regimes/{asset}`)
+- `docs/robustness-methodology.md` (Comprehensive robustness, grid limits, parameter sweeps, and interpretation guide)
+- `docs/regime-methodology.md` (Comprehensive market regime classification, threshold modes, and look-ahead analysis guide)
+
+#### Files Modified
+- `backend/app/main.py` (Mounted `robustness_router` and `regimes_router`)
+- `backend/app/schemas/__init__.py` (Exported Phase 8 schemas)
+- `backend/app/services/__init__.py` (Exported Phase 8 services)
+- `docs/api.md` (Documented Phase 8 REST endpoints)
+- `docs/data-dictionary.md` (Documented Phase 8 data fields and schemas)
+- `docs/PROJECT_PROGRESS.md` (Updated project tracker and roadmap)
+
+#### Endpoints Implemented
+1. `POST /api/v1/robustness/run` — Executes parameter sensitivity sweeps across hyperparameter grids, transaction costs, and backtest windows.
+2. `GET /api/v1/robustness/strategies` — Returns metadata catalog of strategies and hyperparameter ranges.
+3. `GET /api/v1/regimes/{asset}` — Returns historical daily regime classifications, descriptive segment statistics, and state transition timeline.
+
+#### Verification & Test Results
+- **Full Pytest Suite**: 177/177 tests passed (100% pass rate, 0 failed, 0 skipped).
+- **Look-Ahead Bias Verification**: Verified that future price perturbations cause zero change in past trend moving averages, rolling volatilities, or point-in-time expanding thresholds and classifications.
+- **Frontend Build**: `npm run build` completed successfully (0 errors, 2.11s).
+- **Data Integrity**: Verified read-only access on `datasets/raw/` and `datasets/processed/` (unmodified).
+- **Git Branch Check**: Preserved on `feature/quantlab-platform`, zero automated commits/pushes.
+
+#### Known Issues
+- None.
+
+---
+
+## Roadmap
+
+- [x] **Phase 0**: Project architecture and repository setup (Completed)
+- [x] **Phase 1**: Frontend shell + visual design + routing (Completed & Refined)
+- [x] **Phase 2**: Dataset ingestion and validation (Completed)
+- [x] **Phase 3**: Backend market-data APIs (Completed)
+- [x] **Phase 4**: Quantitative indicator engine (Completed)
+- [x] **Phase 5**: Asset Comparison & Correlation Engine (Completed)
+- [x] **Phase 6**: Strategy Engine (Completed)
+- [x] **Phase 7**: Backtesting Engine & Portfolio Simulation (Completed)
+- [x] **Phase 8**: Strategy Robustness Lab & Market Regime Analysis (Completed)
+- [ ] **Phase 9**: Strategy Dashboard UI & Visualizations
+- [ ] **Phase 10**: Robustness Lab UI & Interactive Grids
+- [ ] **Phase 11**: Regime Analysis Visual Timeline
+- [ ] **Phase 12**: Research Teardown Report Generation
+- [ ] **Phase 13**: MAID Authentication Integration
+- [ ] **Phase 14**: PostgreSQL Integration
+- [ ] **Phase 15**: Production Polish & Deployment
 
 
 

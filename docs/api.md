@@ -864,12 +864,186 @@ Returns the metadata catalog of all strategies supported by the Backtesting Engi
 
 ---
 
-## 7. Upcoming Endpoints (Scheduled by Phase)
+---
 
-| Endpoint | Method | Phase | Description |
-|---|---|---|---|
-| `/api/v1/robustness/monte-carlo` | POST | Phase 11 | Parameter sensitivity & Monte Carlo simulations |
-| `/api/v1/regime/detect` | POST | Phase 12 | Classify market volatility and trend regimes |
-| `/api/v1/report/generate` | POST | Phase 13 | Generate downloadable research teardown report |
+## 7. Strategy Robustness Lab Endpoints (Phase 8)
+
+The Robustness Lab evaluates historical backtest sensitivity across hyperparameter grids, transaction cost steps, and time windows.
+
+### `POST /api/v1/robustness/run`
+Executes multi-configuration Cartesian parameter sweeps and returns objective empirical sensitivity distributions.
+
+**Request Body**:
+```json
+{
+  "asset": "Gold",
+  "strategy": "sma_crossover",
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31",
+  "initial_capital": 100000.0,
+  "transaction_costs": [0.0, 0.001],
+  "strategy_parameter_grid": {
+    "fast_period": [10, 20],
+    "slow_period": [50]
+  },
+  "max_configurations": 100
+}
+```
+
+**Response `200 OK`**:
+```json
+{
+  "asset": "Gold",
+  "strategy": "sma_crossover",
+  "summary": {
+    "total_configurations": 4,
+    "parameter_ranges": {
+      "fast_period": [10, 20],
+      "slow_period": [50]
+    },
+    "transaction_costs": [0.0, 0.001],
+    "periods_tested": [
+      {
+        "start_date": "2024-01-01",
+        "end_date": "2024-12-31"
+      }
+    ],
+    "metrics_ranges": {
+      "return_range": { "min": 0.082, "max": 0.165 },
+      "sharpe_range": { "min": 0.65, "max": 1.25 },
+      "drawdown_range": { "min": -0.125, "max": -0.065 },
+      "trades_range": { "min": 2, "max": 6 },
+      "win_rate_range": { "min": 0.5, "max": 1.0 }
+    }
+  },
+  "results": [
+    {
+      "parameters": { "fast_period": 10, "slow_period": 50 },
+      "transaction_cost": 0.0,
+      "start_date": "2024-01-02",
+      "end_date": "2024-12-31",
+      "initial_capital": 100000.0,
+      "final_portfolio_value": 116500.0,
+      "total_return": 0.165,
+      "annualized_return": 0.165,
+      "annualized_volatility": 0.132,
+      "sharpe_ratio": 1.25,
+      "maximum_drawdown": -0.065,
+      "number_of_trades": 4,
+      "win_rate": 0.75
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/v1/robustness/strategies`
+Returns the metadata catalog of strategies supported by the Robustness Lab.
+
+---
+
+## 8. Market Regime Analysis Endpoints (Phase 8)
+
+The Market Regime API provides deterministic historical classification of primary trend (`BULL` / `BEAR`) and secondary volatility states (`HIGH_VOLATILITY` / `LOW_VOLATILITY`).
+
+### `GET /api/v1/regimes/{asset}`
+Retrieves daily regime classifications, state transitions, and descriptive historical performance statistics.
+
+**Query Parameters**:
+- `trend_window` (int, default: 50): Lookback window for trend moving average (SMA).
+- `volatility_window` (int, default: 20): Lookback window for rolling annualized volatility.
+- `threshold_mode` (str, default: `historical_descriptive`): Thresholding mode (`historical_descriptive` or `expanding_threshold`).
+- `start_date` (string, optional): Filter start date (YYYY-MM-DD).
+- `end_date` (string, optional): Filter end date (YYYY-MM-DD).
+
+**Response `200 OK`**:
+```json
+{
+  "asset": "Gold",
+  "trend_window": 50,
+  "volatility_window": 20,
+  "threshold_mode": "historical_descriptive",
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31",
+  "summary_statistics": {
+    "bull": {
+      "observation_count": 210,
+      "percentage": 0.8333,
+      "start_date": "2024-01-02",
+      "end_date": "2024-12-31",
+      "average_daily_return": 0.00115,
+      "cumulative_return": 0.285,
+      "annualized_volatility": 0.128,
+      "sharpe_ratio": 1.45,
+      "maximum_drawdown": -0.062
+    },
+    "bear": {
+      "observation_count": 42,
+      "percentage": 0.1667,
+      "start_date": "2024-02-15",
+      "end_date": "2024-11-20",
+      "average_daily_return": -0.00045,
+      "cumulative_return": -0.032,
+      "annualized_volatility": 0.155,
+      "sharpe_ratio": -0.42,
+      "maximum_drawdown": -0.045
+    },
+    "high_volatility": {
+      "observation_count": 120,
+      "percentage": 0.4762,
+      "start_date": "2024-03-01",
+      "end_date": "2024-12-31",
+      "average_daily_return": 0.00085,
+      "cumulative_return": 0.145,
+      "annualized_volatility": 0.185,
+      "sharpe_ratio": 0.72,
+      "maximum_drawdown": -0.062
+    },
+    "low_volatility": {
+      "observation_count": 132,
+      "percentage": 0.5238,
+      "start_date": "2024-01-02",
+      "end_date": "2024-10-15",
+      "average_daily_return": 0.00078,
+      "cumulative_return": 0.108,
+      "annualized_volatility": 0.089,
+      "sharpe_ratio": 1.38,
+      "maximum_drawdown": -0.028
+    },
+    "total_observations": 252,
+    "classified_trend_observations": 252,
+    "classified_volatility_observations": 252
+  },
+  "transitions": [
+    {
+      "date": "2024-02-15",
+      "transition_type": "regime",
+      "from_state": "BULL",
+      "to_state": "BEAR"
+    },
+    {
+      "date": "2024-03-01",
+      "transition_type": "volatility",
+      "from_state": "LOW_VOLATILITY",
+      "to_state": "HIGH_VOLATILITY"
+    }
+  ],
+  "data": [
+    {
+      "date": "2024-01-02",
+      "asset": "Gold",
+      "close": 2063.7,
+      "trend_value": 1985.4,
+      "trend_window": 50,
+      "rolling_volatility": 0.115,
+      "volatility_window": 20,
+      "volatility_threshold": 0.142,
+      "regime": "BULL",
+      "volatility_state": "LOW_VOLATILITY"
+    }
+  ]
+}
+```
 
 

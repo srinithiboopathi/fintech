@@ -147,4 +147,39 @@ The standardized dataset format used across all backend calculation engines (`go
 | **Sharpe Difference** | `sharpe_difference` | `float` | Ratio | Strategy Sharpe ratio minus Benchmark Sharpe ratio |
 | **MDD Difference** | `mdd_difference` | `float` | Ratio | Strategy Maximum Drawdown minus Benchmark Maximum Drawdown |
 
+---
+
+## 7. Strategy Robustness Fields (Phase 8)
+
+| Field Name | API Key | Type | Unit / Format | Description |
+|---|---|---|---|---|
+| **Parameter Grid** | `strategy_parameter_grid` | `dict` | Key: List | Mapping of hyperparameter names to candidate test values |
+| **Transaction Costs** | `transaction_costs` | `list[float]` | Ratio list | Collection of candidate friction rates tested |
+| **Tested Periods** | `periods_tested` | `list[dict]` | Date ranges | Array of sub-window start/end date pairs evaluated |
+| **Total Configurations** | `total_configurations` | `integer` | Count | Total Cartesian product backtests executed ($N \le 100$) |
+| **Return Range** | `return_range` | `dict` | `min`/`max` | Minimum and maximum total returns observed across configurations |
+| **Sharpe Range** | `sharpe_range` | `dict` | `min`/`max` | Minimum and maximum Sharpe ratios observed across configurations |
+| **Drawdown Range** | `drawdown_range` | `dict` | `min`/`max` | Minimum and maximum maximum drawdowns observed across configurations |
+| **Trades Range** | `trades_range` | `dict` | `min`/`max` | Minimum and maximum completed trade counts observed |
+| **Win Rate Range** | `win_rate_range` | `dict` | `min`/`max` | Minimum and maximum win rates observed across configurations |
+
+---
+
+## 8. Market Regime Analysis Fields (Phase 8)
+
+| Field Name | API Key | Type | Unit / Format | Description |
+|---|---|---|---|---|
+| **Trend Window** | `trend_window` | `integer` | Days (default: 50) | Lookback window for Simple Moving Average trend baseline |
+| **Trend Value** | `trend_value` | `float` | USD ($) | Moving average price at date $t$ |
+| **Primary Regime** | `regime` | `string` | `BULL` / `BEAR` / `null` | Trend classification: `BULL` ($P_t > \text{SMA}$) or `BEAR` ($P_t \le \text{SMA}$) |
+| **Volatility Window** | `volatility_window` | `integer` | Days (default: 20) | Lookback window for rolling annualized volatility |
+| **Rolling Volatility** | `rolling_volatility` | `float` | Annualized ratio | Rolling standard deviation scaled by $\sqrt{252}$ or $\sqrt{365}$ |
+| **Volatility Threshold** | `volatility_threshold` | `float` | Annualized ratio | Median threshold dividing high vs low volatility regimes |
+| **Threshold Mode** | `threshold_mode` | `string` | `historical_descriptive` / `expanding_threshold` | Methodology used to determine volatility cutoff |
+| **Volatility State** | `volatility_state` | `string` | `HIGH_VOLATILITY` / `LOW_VOLATILITY` / `null` | Volatility state: `HIGH` ($\sigma > \theta$) or `LOW` ($\sigma \le \theta$) |
+| **Transition Type** | `transition_type` | `string` | `regime` / `volatility` | Category of state change event |
+| **From State** | `from_state` | `string` | State enum string | Prior active regime or volatility state |
+| **To State** | `to_state` | `string` | State enum string | Newly activated regime or volatility state |
+
+
 

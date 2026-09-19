@@ -11,6 +11,8 @@ from backend.app.api.quant import router as quant_router
 from backend.app.api.correlation import router as correlation_router
 from backend.app.api.strategies import router as strategies_router
 from backend.app.api.backtesting import router as backtesting_router
+from backend.app.api.robustness import router as robustness_router
+from backend.app.api.regimes import router as regimes_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -51,6 +53,8 @@ app.include_router(quant_router, prefix=settings.API_V1_PREFIX)
 app.include_router(correlation_router, prefix=settings.API_V1_PREFIX)
 app.include_router(strategies_router, prefix=settings.API_V1_PREFIX)
 app.include_router(backtesting_router, prefix=settings.API_V1_PREFIX)
+app.include_router(robustness_router, prefix=settings.API_V1_PREFIX)
+app.include_router(regimes_router, prefix=settings.API_V1_PREFIX)
 
 
 

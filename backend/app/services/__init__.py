@@ -7,6 +7,9 @@ from backend.app.services.correlation_service import correlation_service, Correl
 from backend.app.services.strategy_service import strategy_service, StrategyService
 from backend.app.services.backtesting_service import backtest_service, BacktestService
 
+from backend.app.services.robustness_service import robustness_service, RobustnessService
+from backend.app.services.regime_service import regime_service, RegimeService
+
 __all__ = [
     "market_service",
     "MarketDataService",
@@ -18,6 +21,10 @@ __all__ = [
     "StrategyService",
     "backtest_service",
     "BacktestService",
+    "robustness_service",
+    "RobustnessService",
+    "regime_service",
+    "RegimeService",
 ]
 
 

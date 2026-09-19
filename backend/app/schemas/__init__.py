@@ -53,6 +53,24 @@ from backend.app.schemas.backtesting import (
     StrategyInfoListResponse,
 )
 
+from backend.app.schemas.robustness import (
+    RobustnessPeriod,
+    RobustnessRequest,
+    RobustnessConfigResult,
+    MetricMinMax,
+    TradesMinMax,
+    RobustnessMetricRanges,
+    RobustnessSummary,
+    RobustnessResponse,
+)
+from backend.app.schemas.regimes import (
+    RegimeDataPoint,
+    RegimeMetrics,
+    TransitionEvent,
+    RegimeSummaryStatistics,
+    RegimeResponse,
+)
+
 __all__ = [
     "MarketDataPoint",
     "AssetItem",
@@ -95,6 +113,19 @@ __all__ = [
     "BacktestResponse",
     "StrategyInfo",
     "StrategyInfoListResponse",
+    "RobustnessPeriod",
+    "RobustnessRequest",
+    "RobustnessConfigResult",
+    "MetricMinMax",
+    "TradesMinMax",
+    "RobustnessMetricRanges",
+    "RobustnessSummary",
+    "RobustnessResponse",
+    "RegimeDataPoint",
+    "RegimeMetrics",
+    "TransitionEvent",
+    "RegimeSummaryStatistics",
+    "RegimeResponse",
 ]
 
 
