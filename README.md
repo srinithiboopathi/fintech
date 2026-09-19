@@ -3,8 +3,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2.6+-e92063.svg)](https://docs.pydantic.dev/)
-[![Pytest Tests](https://img.shields.io/badge/tests-170%20passed-success.svg)](#testing-instructions)
-[![Status](https://img.shields.io/badge/Milestone-Step%2010%20Complete-emerald.svg)](#current-project-status)
+[![Pytest Tests](https://img.shields.io/badge/tests-190%20passed-success.svg)](#testing-instructions)
+[![Status](https://img.shields.io/badge/Milestone-Step%2011%20Complete-emerald.svg)](#current-project-status)
 
 ---
 
@@ -99,6 +99,9 @@ Enables side-by-side comparative backtesting across all four quantitative strate
 
 ### Parameter Sensitivity & Robustness Analysis
 Evaluates parameter stability across discrete, user-bounded candidate grids (e.g. `short_period = [10, 20, 30]`, `long_period = [40, 50, 60]`). Enforces structural validity (`short_period < long_period`), bounds the grid to $\le 50$ combinations per request, and reports all results transparently with zero look-ahead bias and no automated selection bias.
+
+### Market Regime Analysis & Attribution
+Classifies historical market observations into deterministic trend states (`BULLISH`, `BEARISH`, `SIDEWAYS`), volatility states (`HIGH_VOLATILITY`, `LOW_VOLATILITY` via causal expanding median or fixed threshold), and combined macroeconomic regimes (e.g. `BULLISH_LOW_VOL`, `BEARISH_HIGH_VOL`). Evaluates factual strategy returns and maximum drawdown attributed across regimes without subjective ranking or classification bias.
 
 ---
 
@@ -250,6 +253,9 @@ LATEST_CACHE_TTL_SECONDS=60
 | `POST` | `/market/{asset}/strategy/backtest` | `refresh` | End-to-end strategy backtest with equity curve, performance metrics, and benchmark |
 | `POST` | `/market/{asset}/strategy/compare` | `refresh` | Factual side-by-side comparison across all four strategies under identical assumptions |
 | `POST` | `/market/{asset}/strategy/robustness` | `refresh` | Parameter grid sensitivity and robustness analysis over bounded candidate ranges |
+| `GET` | `/market/{asset}/regimes` | `trend_period`, `volatility_period`, `volatility_threshold`, `refresh` | Chronological market regime classifications (trend, volatility, combined) |
+| `GET` | `/market/{asset}/regimes/summary` | `trend_period`, `volatility_period`, `volatility_threshold`, `refresh` | Distribution summary of regime observation counts and percentages |
+| `GET` | `/market/{asset}/regimes/performance` | `trend_period`, `volatility_period`, `volatility_threshold`, `refresh` | Factual strategy attribution and return/drawdown across detected regimes |
 
 For complete schemas and examples, see [`docs/api.md`](docs/api.md).
 
@@ -276,8 +282,9 @@ pytest backend/tests -v
 - `backend/tests/test_backtesting.py` — Backtesting engine, execution causality, accounting, fee modeling, benchmarks (26 tests)
 - `backend/tests/test_strategies.py` — SMA Crossover, EMA Trend, Momentum, Mean Reversion, Signals & Backtest APIs (40 tests)
 - `backend/tests/test_strategy_comparison.py` — Multi-strategy comparison, parameter combinations, look-ahead protection, bounds validation (20 tests)
+- `backend/tests/test_market_regimes.py` — Trend/volatility regimes, expanding median threshold, look-ahead protection, regime performance attribution (20 tests)
 
-**Total: 170 automated tests (100% passing)**.
+**Total: 190 automated tests (100% passing)**.
 
 ---
 
@@ -296,7 +303,8 @@ pytest backend/tests -v
 | **Step 8: Strategy Backtesting Engine** | **COMPLETE** | Causal Next-Observation execution, accounting, fees, Buy & Hold benchmark |
 | **Step 9: Four Trading Strategies** | **COMPLETE** | SMA Crossover, EMA Trend, Momentum, Mean Reversion with zero look-ahead bias |
 | **Step 10: Strategy Comparison & Robustness** | **COMPLETE** | Multi-strategy comparative execution & bounded parameter sensitivity analysis |
-| **Step 11+: Market Regimes & Platform UI** | **NOT STARTED** | Reserved for subsequent milestone |
+| **Step 11: Market Regime Analysis** | **COMPLETE** | Trend/volatility regime detection, expanding median threshold, strategy performance attribution |
+| **Step 12+: Platform UI & Real-Time Monitoring** | **NOT STARTED** | Reserved for subsequent milestone |
 
 
 ---

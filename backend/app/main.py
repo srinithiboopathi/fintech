@@ -105,7 +105,10 @@ def create_app() -> FastAPI:
                 "strategy_signals": "/market/{asset}/strategy/signals",
                 "strategy_backtest": "/market/{asset}/strategy/backtest",
                 "strategy_compare": "/market/{asset}/strategy/compare",
-                "strategy_robustness": "/market/{asset}/strategy/robustness"
+                "strategy_robustness": "/market/{asset}/strategy/robustness",
+                "market_regimes": "/market/{asset}/regimes",
+                "market_regimes_summary": "/market/{asset}/regimes/summary",
+                "strategy_regimes_performance": "/market/{asset}/regimes/performance"
             },
 
 

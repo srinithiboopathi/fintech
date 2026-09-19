@@ -614,6 +614,93 @@ class RobustnessAnalysisResponse(BaseModel):
     results: List[RobustnessCombinationResult] = Field(..., description="Factual metrics for each parameter combination")
 
 
+# ==============================================================================
+# Step 11: Market Regime Analysis Schemas
+# ==============================================================================
+
+class MarketRegimePoint(BaseModel):
+    """Timestamped single observation with detected trend, volatility, and combined regime."""
+    timestamp: str = Field(..., description="UTC ISO-8601 formatted date/timestamp")
+    close: float = Field(..., description="Clean closing price at time t")
+    sma: Optional[float] = Field(None, description="Simple moving average at time t")
+    rolling_volatility: Optional[float] = Field(None, description="Rolling daily return volatility at time t")
+    trend_state: str = Field(..., description="Trend classification (BULLISH, BEARISH, SIDEWAYS, UNKNOWN)")
+    volatility_state: str = Field(..., description="Volatility classification (HIGH_VOLATILITY, LOW_VOLATILITY, UNKNOWN)")
+    combined_regime: str = Field(..., description="Combined market regime (e.g. BULLISH_LOW_VOL, UNKNOWN)")
+
+
+class MarketRegimesParameters(BaseModel):
+    """Configured quantitative parameters for market regime classification."""
+    trend_period: int = Field(50, description="SMA period for trend classification (>= 1)")
+    volatility_window: int = Field(20, description="Rolling returns window for volatility (>= 2)")
+    volatility_threshold: Optional[float] = Field(
+        None,
+        description="Volatility threshold in percentage points. If None, empirical median is used."
+    )
+    trend_threshold: float = Field(
+        0.0,
+        description="Neutral band fraction around SMA for sideways classification (>= 0.0)"
+    )
+
+
+class MarketRegimesResponse(BaseModel):
+    """Full timestamped market regime time series response."""
+    asset: str = Field(..., description="Asset display name")
+    symbol: str = Field(..., description="Asset ticker symbol")
+    source: str = Field(default="Twelve Data", description="Market data source provider")
+    data_status: str = Field(default="calculated", description="Data processing status")
+    parameters: MarketRegimesParameters = Field(..., description="Configured regime rules and parameters")
+    observation_count: int = Field(..., description="Total observations in the analyzed time series")
+    start_date: Optional[str] = Field(None, description="Earliest observation timestamp")
+    end_date: Optional[str] = Field(None, description="Latest observation timestamp")
+    data: List[MarketRegimePoint] = Field(..., description="Chronological list of market regime points")
+    regimes: Optional[List[MarketRegimePoint]] = Field(None, description="Alias for data")
+
+
+class RegimeSummaryItem(BaseModel):
+    """Aggregate distribution statistics for a specific market regime."""
+    regime: str = Field(..., description="Regime identifier (e.g. BULLISH_LOW_VOL)")
+    observation_count: int = Field(..., description="Count of observations categorized in this regime")
+    percentage: float = Field(..., description="Percentage of total observations (0 to 100)")
+    percentage_of_observations: float = Field(..., description="Alias for percentage")
+    start_date: Optional[str] = Field(None, description="First date this regime was observed")
+    end_date: Optional[str] = Field(None, description="Last date this regime was observed")
+
+
+class MarketRegimesSummaryResponse(BaseModel):
+    """Executive distribution summary of market regimes."""
+    asset: str = Field(..., description="Asset display name")
+    symbol: str = Field(..., description="Asset ticker symbol")
+    source: str = Field(default="Twelve Data", description="Market data source provider")
+    data_status: str = Field(default="calculated", description="Data processing status")
+    parameters: MarketRegimesParameters = Field(..., description="Configured regime rules and parameters")
+    total_observations: int = Field(..., description="Total observations analyzed")
+    observation_count: int = Field(..., description="Alias for total_observations")
+    start_date: Optional[str] = Field(None, description="Earliest observation timestamp")
+    end_date: Optional[str] = Field(None, description="Latest observation timestamp")
+    regimes: List[RegimeSummaryItem] = Field(..., description="Distribution per regime")
+    summary: Optional[List[RegimeSummaryItem]] = Field(None, description="Alias for regimes")
+
+
+class StrategyRegimePerformanceItem(BaseModel):
+    """Factual performance metrics of a quantitative strategy during a specific market regime."""
+    strategy: str = Field(..., description="Strategy identifier")
+    regime: str = Field(..., description="Market regime identifier")
+    observations: int = Field(..., description="Number of days the market spent in this regime")
+    trades: int = Field(..., description="Number of trades executed in this regime")
+    total_return: float = Field(..., description="Compound percentage return achieved in this regime")
+    maximum_drawdown: float = Field(..., description="Maximum peak-to-trough drawdown in this regime")
+
+
+class StrategyRegimePerformanceResponse(BaseModel):
+    """Factual strategy performance breakdown across market regimes."""
+    asset: str = Field(..., description="Asset display name")
+    symbol: str = Field(..., description="Asset ticker symbol")
+    source: str = Field(default="Twelve Data", description="Market data source provider")
+    parameters: MarketRegimesParameters = Field(..., description="Configured regime rules and parameters")
+    performances: List[StrategyRegimePerformanceItem] = Field(..., description="Performance per strategy and regime")
+
+
 
 
 

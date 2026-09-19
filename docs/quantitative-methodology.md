@@ -3,7 +3,7 @@
 This document details the mathematical models, formulas, statistical assumptions, and numerical implementations active in the **Quantexa** analytics platform.
 
 > [!NOTE]
-> This document describes the currently implemented quantitative algorithms (Steps 1–10). Future algorithmic models (such as market-regime classification and portfolio allocation) are reserved for subsequent steps.
+> This document describes the currently implemented quantitative algorithms (Steps 1–11). Future algorithmic models (such as portfolio allocation and platform UI) are reserved for subsequent steps.
 
 ---
 
@@ -343,6 +343,81 @@ Quantitative strategies are highly susceptible to **overfitting** (curve-fitting
 4. **Causal Invariance Across Configurations**:
    - Each parameter configuration runs independently through the causal `BacktestingEngine`.
    - Modifying future market bars does not alter earlier signals, trades, or portfolio equity for any parameter set.
+
+---
+
+## Market Regime Analysis
+
+Step 11 implements transparent, explainable, and causal macroeconomic market regime identification. Financial asset prices display distinct statistical properties across structural regimes; identifying these states allows quantitative researchers to analyze strategy performance under varied macroeconomic environments.
+
+### 1. Trend State Classification
+
+Trend is characterized by comparing market close prices against a Simple Moving Average of lookback period $n_{\text{trend}}$ (default: $n=50$):
+
+$$\text{SMA}_t(n) = \frac{1}{n} \sum_{k=0}^{n-1} P_{t-k}$$
+
+#### Classification Rules:
+- **`BULLISH`**: $\text{Close}_t > \text{SMA}_t \times (1 + \theta_{\text{trend}})$
+- **`BEARISH`**: $\text{Close}_t < \text{SMA}_t \times (1 - \theta_{\text{trend}})$
+- **`SIDEWAYS`**: $\text{Close}_t$ lies within the neutral boundary band $[\text{SMA}_t \times (1 - \theta_{\text{trend}}), \text{SMA}_t \times (1 + \theta_{\text{trend}})]$ or $\text{Close}_t = \text{SMA}_t$. (Default neutral band $\theta_{\text{trend}} = 0.0$).
+- **`UNKNOWN`**: Insufficient observations for SMA warmup ($t < n_{\text{trend}} - 1$).
+
+---
+
+### 2. Volatility State Classification
+
+Volatility is measured using the rolling sample standard deviation of daily percentage returns with Bessel's correction ($ddof = 1$) over a lookback window $n_{\text{vol}}$ (default: $n=20$):
+
+$$\sigma_t = \sqrt{\frac{1}{n - 1} \sum_{i=0}^{n-1} (R_{t-i} - \bar{R}_t)^2}$$
+
+#### Threshold & Causal Median:
+- **User-Specified Threshold**: If `volatility_threshold` is supplied (e.g. $1.5\%$), it serves as a constant cutoff boundary.
+- **Causal Expanding Median (Default)**: If `volatility_threshold` is omitted, the engine computes the expanding median of valid historical volatilities up to index $t$:
+  $$\tau_t = \text{median}(\{\sigma_i : i \le t \text{ and } \sigma_i \text{ is not None}\})$$
+  This formulation guarantees **Zero Look-Ahead Bias**: future volatility shocks at $t' > t$ cannot alter the classification threshold at date $t$.
+
+#### Classification Rules:
+- **`HIGH_VOLATILITY`**: $\sigma_t > \tau_t$
+- **`LOW_VOLATILITY`**: $\sigma_t \le \tau_t$
+- **`UNKNOWN`**: Insufficient observations for volatility warmup ($t < n_{\text{vol}} - 1$).
+
+---
+
+### 3. Combined Macroeconomic Regimes
+
+Synthesizing trend and volatility states produces 6 primary composite regimes:
+1. `BULLISH_LOW_VOL`: Favorable upward drift with muted historical fluctuations.
+2. `BULLISH_HIGH_VOL`: Upward price appreciation accompanied by wide return variance.
+3. `BEARISH_LOW_VOL`: Orderly downward repricing with contained dispersion.
+4. `BEARISH_HIGH_VOL`: Severe downside distress with elevated volatility and sharp swings.
+5. `SIDEWAYS_LOW_VOL`: Range-bound consolidation with low volatility.
+6. `SIDEWAYS_HIGH_VOL`: Choppy, mean-reverting environment with wide daily swings.
+7. `UNKNOWN`: Emitted whenever either the trend state or volatility state is `UNKNOWN` (insufficient warmup). Synthetic or fabricated classifications are strictly prohibited.
+
+---
+
+### 4. Strategy Attribution Across Market Regimes
+
+Quantexa evaluates how each of the 4 quantitative strategies (`sma_crossover`, `ema_trend`, `momentum`, `mean_reversion`) performs within each detected regime:
+- **Regime Days ($\text{Observations}$)**: Count of trading sessions spent in this regime.
+- **Executed Trades ($\text{Trades}$)**: Count of buy/sell orders initiated in this regime.
+- **Compound Regime Return**:
+  $$\text{Total Return}_{\text{regime}} = \left( \prod_{t \in \text{regime}} \left( 1 + \frac{R_t}{100} \right) - 1 \right) \times 100\%$$
+- **Regime Maximum Drawdown**: Peak-to-trough decline experienced while the regime was active.
+
+#### Neutrality Invariant:
+The platform never labels any regime or strategy as "best", "worst", "winner", or "loser". All outputs are factual quantitative performance and risk metrics.
+
+---
+
+### 5. Invariants & Practical Limitations
+
+| Aspect | Architectural Specification |
+| :--- | :--- |
+| **Zero Look-Ahead Bias** | Expanding median and trailing indicators guarantee no forward data leakage. |
+| **No Synthetic Data** | Ingests real cleaned data from Step 3; never generates random distributions. |
+| **Regime Lag** | Moving averages and rolling volatility inherently respond with causal lag proportional to window size ($n_{\text{trend}} = 50$, $n_{\text{vol}} = 20$). |
+| **Regime Transitions** | Transitions are discrete point-in-time classifications without smoothing hysteresis unless neutral threshold is configured. |
 
 ---
 

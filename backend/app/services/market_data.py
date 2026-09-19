@@ -27,6 +27,9 @@ from app.models.schemas import (
     StrategyComparisonResponse,
     RobustnessAnalysisRequest,
     RobustnessAnalysisResponse,
+    MarketRegimesResponse,
+    MarketRegimesSummaryResponse,
+    StrategyRegimePerformanceResponse,
 )
 from app.services.cache_manager import cache_manager
 from app.services.twelve_data import twelve_data_service
@@ -38,6 +41,9 @@ from app.services.correlation import correlation_service
 from app.services.backtesting import backtesting_service
 from app.services.strategies import strategy_service
 from app.services.strategy_comparison import strategy_comparison_service
+from app.services.market_regimes import MarketRegimeService
+
+market_regime_service = MarketRegimeService()
 
 
 from app.utils.exceptions import (
@@ -1144,6 +1150,127 @@ class MarketDataService:
             asset_name=asset_name,
             symbol=symbol,
             source=clean_resp.source
+        )
+
+    async def get_market_regimes(
+        self,
+        asset_identifier: str,
+        trend_period: int = 50,
+        volatility_window: int = 20,
+        volatility_threshold: Optional[float] = None,
+        trend_threshold: float = 0.0,
+        refresh: bool = False,
+    ) -> MarketRegimesResponse:
+        """
+        Classifies historical market observations into trend, volatility, and combined market regimes.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+        clean_points = clean_resp.data
+
+        regime_points, parameters = market_regime_service.classify_regimes(
+            clean_points=clean_points,
+            trend_period=trend_period,
+            volatility_window=volatility_window,
+            volatility_threshold=volatility_threshold,
+            trend_threshold=trend_threshold,
+        )
+
+        start_date = regime_points[0].timestamp if regime_points else None
+        end_date = regime_points[-1].timestamp if regime_points else None
+
+        return MarketRegimesResponse(
+            asset=asset_name,
+            symbol=symbol,
+            source=clean_resp.source,
+            data_status="calculated",
+            parameters=parameters,
+            observation_count=len(regime_points),
+            start_date=start_date,
+            end_date=end_date,
+            data=regime_points,
+            regimes=regime_points,
+        )
+
+    async def get_market_regimes_summary(
+        self,
+        asset_identifier: str,
+        trend_period: int = 50,
+        volatility_window: int = 20,
+        volatility_threshold: Optional[float] = None,
+        trend_threshold: float = 0.0,
+        refresh: bool = False,
+    ) -> MarketRegimesSummaryResponse:
+        """
+        Returns executive distribution summary of detected market regimes.
+        """
+        regimes_resp = await self.get_market_regimes(
+            asset_identifier=asset_identifier,
+            trend_period=trend_period,
+            volatility_window=volatility_window,
+            volatility_threshold=volatility_threshold,
+            trend_threshold=trend_threshold,
+            refresh=refresh,
+        )
+
+        summary_items = market_regime_service.summarize_regimes(regimes_resp.data)
+
+        return MarketRegimesSummaryResponse(
+            asset=regimes_resp.asset,
+            symbol=regimes_resp.symbol,
+            source=regimes_resp.source,
+            data_status="calculated",
+            parameters=regimes_resp.parameters,
+            total_observations=regimes_resp.observation_count,
+            observation_count=regimes_resp.observation_count,
+            start_date=regimes_resp.start_date,
+            end_date=regimes_resp.end_date,
+            regimes=summary_items,
+            summary=summary_items,
+        )
+
+    async def get_strategy_performance_by_regime(
+        self,
+        asset_identifier: str,
+        trend_period: int = 50,
+        volatility_window: int = 20,
+        volatility_threshold: Optional[float] = None,
+        trend_threshold: float = 0.0,
+        refresh: bool = False,
+    ) -> StrategyRegimePerformanceResponse:
+        """
+        Evaluates factual strategy performance and risk metrics partitioned by market regimes.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+        clean_points = clean_resp.data
+
+        performances, parameters = market_regime_service.analyze_strategy_performance_by_regime(
+            clean_points=clean_points,
+            trend_period=trend_period,
+            volatility_window=volatility_window,
+            volatility_threshold=volatility_threshold,
+            trend_threshold=trend_threshold,
+        )
+
+        return StrategyRegimePerformanceResponse(
+            asset=asset_name,
+            symbol=symbol,
+            source=clean_resp.source,
+            parameters=parameters,
+            performances=performances,
         )
 
 market_data_service = MarketDataService()

@@ -27,6 +27,9 @@ from app.models.schemas import (
     StrategyComparisonResponse,
     RobustnessAnalysisRequest,
     RobustnessAnalysisResponse,
+    MarketRegimesResponse,
+    MarketRegimesSummaryResponse,
+    StrategyRegimePerformanceResponse,
 )
 from app.services.market_data import market_data_service
 from app.services.cache_manager import cache_manager
@@ -38,6 +41,7 @@ from app.utils.exceptions import (
     InvalidBacktestParameterError,
     UnsupportedStrategyError,
     InvalidStrategyParameterError,
+    InvalidRegimeParameterError,
 )
 
 router = APIRouter()
@@ -141,6 +145,65 @@ def validate_rolling_window(val: Any) -> int:
         raise InvalidCorrelationWindowError()
 
     return window
+
+
+def validate_regime_params(
+    trend_val: Any,
+    vol_val: Any,
+    vol_thresh_val: Any,
+    trend_thresh_val: Any,
+) -> tuple[int, int, Optional[float], float]:
+    """
+    Validates market regime query parameters:
+    - trend_period: positive integer in [1, 500] (default: 50)
+    - volatility_window: positive integer in [2, 500] (default: 20)
+    - volatility_threshold: optional positive float in (0.0, 100.0]
+    - trend_threshold: float in [0.0, 1.0] (default: 0.0)
+    Raises InvalidRegimeParameterError (HTTP 400).
+    """
+    if trend_val is None:
+        tp = 50
+    else:
+        tp_str = str(trend_val).strip()
+        if not re.fullmatch(r"\d+", tp_str):
+            raise InvalidRegimeParameterError("trend_period must be a positive integer.")
+        tp = int(tp_str)
+        if tp < 1 or tp > 500:
+            raise InvalidRegimeParameterError("trend_period must be between 1 and 500.")
+
+    if vol_val is None:
+        vw = 20
+    else:
+        vw_str = str(vol_val).strip()
+        if not re.fullmatch(r"\d+", vw_str):
+            raise InvalidRegimeParameterError("volatility_window must be an integer >= 2.")
+        vw = int(vw_str)
+        if vw < 2 or vw > 500:
+            raise InvalidRegimeParameterError("volatility_window must be between 2 and 500.")
+
+    if vol_thresh_val is None:
+        vt = None
+    else:
+        vt_str = str(vol_thresh_val).strip()
+        try:
+            vt = float(vt_str)
+            if vt <= 0.0 or vt > 100.0 or not math.isfinite(vt):
+                raise InvalidRegimeParameterError("volatility_threshold must be a positive float between 0 and 100.")
+        except (ValueError, TypeError):
+            raise InvalidRegimeParameterError("volatility_threshold must be a numeric value.")
+
+    if trend_thresh_val is None:
+        tt = 0.0
+    else:
+        tt_str = str(trend_thresh_val).strip()
+        try:
+            tt = float(tt_str)
+            if tt < 0.0 or tt > 1.0 or not math.isfinite(tt):
+                raise InvalidRegimeParameterError("trend_threshold must be a float between 0.0 and 1.0.")
+        except (ValueError, TypeError):
+            raise InvalidRegimeParameterError("trend_threshold must be a numeric value.")
+
+    return tp, vw, vt, tt
 
 
 
@@ -603,6 +666,160 @@ async def analyze_strategy_robustness(
     return await market_data_service.analyze_robustness(
         asset_identifier=asset,
         request=request,
+        refresh=refresh or False
+    )
+
+
+# ==============================================================================
+# Step 11: Market Regime Analysis Endpoints
+# ==============================================================================
+
+@router.get(
+    "/market/{asset}/regimes",
+    response_model=MarketRegimesResponse,
+    summary="Market Regime Analysis",
+    tags=["Market Regimes"]
+)
+async def get_market_regimes(
+    asset: str = Path(..., description="Target asset identifier: 'nvidia', 'bitcoin', or 'gold'"),
+    trend_period: Optional[Any] = Query(
+        50,
+        description="SMA lookback window for trend state classification (>= 1, default: 50)"
+    ),
+    volatility_window: Optional[Any] = Query(
+        20,
+        description="Rolling window for volatility state classification (>= 2, default: 20)"
+    ),
+    volatility_threshold: Optional[Any] = Query(
+        None,
+        description="Optional fixed volatility threshold percentage. If omitted, causal expanding median is used."
+    ),
+    trend_threshold: Optional[Any] = Query(
+        0.0,
+        description="Optional neutral band fraction for sideways trend (>= 0.0, default: 0.0)"
+    ),
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Classifies historical market data into deterministic trend, volatility,
+    and combined market regimes with strict causal zero look-ahead protection.
+    """
+    tp, vw, vt, tt = validate_regime_params(
+        trend_val=trend_period,
+        vol_val=volatility_window,
+        vol_thresh_val=volatility_threshold,
+        trend_thresh_val=trend_threshold,
+    )
+
+    return await market_data_service.get_market_regimes(
+        asset_identifier=asset,
+        trend_period=tp,
+        volatility_window=vw,
+        volatility_threshold=vt,
+        trend_threshold=tt,
+        refresh=refresh or False
+    )
+
+
+@router.get(
+    "/market/{asset}/regimes/summary",
+    response_model=MarketRegimesSummaryResponse,
+    summary="Market Regimes Distribution Summary",
+    tags=["Market Regimes"]
+)
+async def get_market_regimes_summary(
+    asset: str = Path(..., description="Target asset identifier: 'nvidia', 'bitcoin', or 'gold'"),
+    trend_period: Optional[Any] = Query(
+        50,
+        description="SMA lookback window for trend state classification (>= 1, default: 50)"
+    ),
+    volatility_window: Optional[Any] = Query(
+        20,
+        description="Rolling window for volatility state classification (>= 2, default: 20)"
+    ),
+    volatility_threshold: Optional[Any] = Query(
+        None,
+        description="Optional fixed volatility threshold percentage. If omitted, causal expanding median is used."
+    ),
+    trend_threshold: Optional[Any] = Query(
+        0.0,
+        description="Optional neutral band fraction for sideways trend (>= 0.0, default: 0.0)"
+    ),
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Returns an executive distribution summary of detected market regimes including
+    observation counts, percentage distribution, and historical start/end dates.
+    """
+    tp, vw, vt, tt = validate_regime_params(
+        trend_val=trend_period,
+        vol_val=volatility_window,
+        vol_thresh_val=volatility_threshold,
+        trend_thresh_val=trend_threshold,
+    )
+
+    return await market_data_service.get_market_regimes_summary(
+        asset_identifier=asset,
+        trend_period=tp,
+        volatility_window=vw,
+        volatility_threshold=vt,
+        trend_threshold=tt,
+        refresh=refresh or False
+    )
+
+
+@router.get(
+    "/market/{asset}/regimes/performance",
+    response_model=StrategyRegimePerformanceResponse,
+    summary="Strategy Performance by Market Regime",
+    tags=["Market Regimes"]
+)
+async def get_strategy_regime_performance(
+    asset: str = Path(..., description="Target asset identifier: 'nvidia', 'bitcoin', or 'gold'"),
+    trend_period: Optional[Any] = Query(
+        50,
+        description="SMA lookback window for trend state classification (>= 1, default: 50)"
+    ),
+    volatility_window: Optional[Any] = Query(
+        20,
+        description="Rolling window for volatility state classification (>= 2, default: 20)"
+    ),
+    volatility_threshold: Optional[Any] = Query(
+        None,
+        description="Optional fixed volatility threshold percentage. If omitted, causal expanding median is used."
+    ),
+    trend_threshold: Optional[Any] = Query(
+        0.0,
+        description="Optional neutral band fraction for sideways trend (>= 0.0, default: 0.0)"
+    ),
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Factual attribution of strategy performance and maximum drawdown across detected market regimes.
+    Reuses Step 8 BacktestingEngine and Step 9 strategy dispatcher with zero ranking/scoring.
+    """
+    tp, vw, vt, tt = validate_regime_params(
+        trend_val=trend_period,
+        vol_val=volatility_window,
+        vol_thresh_val=volatility_threshold,
+        trend_thresh_val=trend_threshold,
+    )
+
+    return await market_data_service.get_strategy_performance_by_regime(
+        asset_identifier=asset,
+        trend_period=tp,
+        volatility_window=vw,
+        volatility_threshold=vt,
+        trend_threshold=tt,
         refresh=refresh or False
     )
 

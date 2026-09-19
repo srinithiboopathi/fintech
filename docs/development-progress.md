@@ -19,7 +19,8 @@ This document tracks the phased implementation milestones of the **Quantexa** qu
 | **Step 8** | Strategy-Agnostic Backtesting Engine | **COMPLETE** | 110 tests passed (26 Step 8 tests: Next-Observation execution, fee accounting, Buy & Hold benchmark, live verification) |
 | **Step 9** | Four Quantitative Trading Strategies | **COMPLETE** | 150 tests passed (40 Step 9 tests: SMA Crossover, EMA Trend, Momentum, Mean Reversion, Signals & Backtest APIs, live verification) |
 | **Step 10** | Strategy Comparison & Robustness Analysis | **COMPLETE** | 170 tests passed (20 Step 10 tests: Multi-strategy comparison, bounded parameter sensitivity, benchmark excess return, live verification) |
-| **Step 11+**| Market-Regime Analysis & Platform UI | **NOT STARTED**| Future roadmap |
+| **Step 11** | Market Regime Analysis | **COMPLETE** | 190 tests passed (20 Step 11 tests: SMA trend, expanding median volatility, combined regimes, strategy attribution, live verification) |
+| **Step 12+**| Portfolio Allocation & Advanced Analytics Platform UI | **NOT STARTED**| Future roadmap |
 
 ---
 
@@ -177,5 +178,29 @@ This document tracks the phased implementation milestones of the **Quantexa** qu
     - `POST /market/{asset}/strategy/robustness`: Parameter grid sensitivity analysis.
   - Created 20 comprehensive unit and integration tests in `backend/tests/test_strategy_comparison.py`.
   - 170/170 total tests passing (150 previous baseline + 20 new Step 10 tests); live verification passed across NVDA, BTC/USD, and XAU/USD.
+
+---
+
+### Step 11: Market Regime Analysis
+- **Status**: COMPLETE
+- **Deliverables**:
+  - Created `MarketRegimeService` (`app/services/market_regimes.py`).
+  - **Trend State Classification**:
+    - Dual-state and neutral band SMA classification: `BULLISH` (close > SMA), `BEARISH` (close < SMA), `SIDEWAYS` (close within neutral band of SMA or close == SMA), and `UNKNOWN` (insufficient SMA warmup).
+    - Default lookback period: $n = 50$.
+  - **Volatility State Classification**:
+    - Rolling return sample volatility with Bessel's correction ($ddof=1$, default window: $n=20$).
+    - Zero look-ahead thresholding: When `volatility_threshold` is not passed, evaluates against the causal expanding median of rolling volatility up to time $t$.
+    - Classifies into `HIGH_VOLATILITY`, `LOW_VOLATILITY`, and `UNKNOWN`.
+  - **Combined Macroeconomic Regimes**:
+    - 6 primary combinations: `BULLISH_LOW_VOL`, `BULLISH_HIGH_VOL`, `BEARISH_LOW_VOL`, `BEARISH_HIGH_VOL`, `SIDEWAYS_LOW_VOL`, `SIDEWAYS_HIGH_VOL`, plus `UNKNOWN` for insufficient data.
+  - **Strategy Attribution Across Regimes**:
+    - Evaluates the 4 quantitative strategies across each detected market regime, reporting factual metrics (`observations`, `trades`, `total_return`, `maximum_drawdown`) without ranking or subjective labels.
+  - Added endpoints:
+    - `GET /market/{asset}/regimes`: Full timestamped regime series.
+    - `GET /market/{asset}/regimes/summary`: Executive regime distribution summary.
+    - `GET /market/{asset}/regimes/performance`: Strategy performance breakdown across market regimes.
+  - Created 20 comprehensive unit and integration tests in `backend/tests/test_market_regimes.py`.
+  - 190/190 total tests passing (170 previous baseline + 20 new Step 11 tests); live verification passed across NVDA, BTC/USD, and XAU/USD.
 
 

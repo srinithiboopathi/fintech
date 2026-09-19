@@ -997,6 +997,157 @@ Performs controlled, bounded parameter sensitivity testing across discrete param
 
 ---
 
+## 17. Market Regime Analysis
+
+### `GET /market/{asset}/regimes`
+
+Classifies historical daily observations into deterministic trend, volatility, and combined market regimes with strict zero look-ahead protection.
+
+#### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `trend_period` | `integer` | No | `50` | SMA lookback period for trend classification ($1 \le n \le 500$) |
+| `volatility_window` | `integer` | No | `20` | Rolling returns window for volatility calculation ($2 \le n \le 500$) |
+| `volatility_threshold` | `float` | No | `None` | Optional fixed daily percentage volatility threshold. If omitted, causal expanding median is used |
+| `trend_threshold` | `float` | No | `0.0` | Optional neutral band fraction around SMA for sideways trend ($0.0 \le t \le 1.0$) |
+| `refresh` | `boolean` | No | `false` | Bypass local cache and force fresh data calculation |
+
+#### Response: `200 OK`
+```json
+{
+  "asset": "NVIDIA",
+  "symbol": "NVDA",
+  "source": "Twelve Data",
+  "data_status": "calculated",
+  "parameters": {
+    "trend_period": 50,
+    "volatility_window": 20,
+    "volatility_threshold": 2.15,
+    "trend_threshold": 0.0
+  },
+  "observation_count": 30,
+  "start_date": "2026-08-21T00:00:00Z",
+  "end_date": "2026-09-19T00:00:00Z",
+  "data": [
+    {
+      "timestamp": "2026-09-19T00:00:00Z",
+      "close": 118.5,
+      "sma": 112.4,
+      "rolling_volatility": 1.85,
+      "trend_state": "BULLISH",
+      "volatility_state": "LOW_VOLATILITY",
+      "combined_regime": "BULLISH_LOW_VOL"
+    }
+  ]
+}
+```
+
+---
+
+## 18. Market Regimes Distribution Summary
+
+### `GET /market/{asset}/regimes/summary`
+
+Returns an executive distribution summary of detected market regimes, including observation counts, percentage distribution across regimes, and historical start/end dates.
+
+#### Query Parameters
+
+Same query parameters as `/regimes` (`trend_period`, `volatility_window`, `volatility_threshold`, `trend_threshold`, `refresh`).
+
+#### Response: `200 OK`
+```json
+{
+  "asset": "NVIDIA",
+  "symbol": "NVDA",
+  "source": "Twelve Data",
+  "data_status": "calculated",
+  "parameters": {
+    "trend_period": 10,
+    "volatility_window": 5,
+    "volatility_threshold": 2.15,
+    "trend_threshold": 0.0
+  },
+  "total_observations": 30,
+  "observation_count": 30,
+  "start_date": "2026-08-21T00:00:00Z",
+  "end_date": "2026-09-19T00:00:00Z",
+  "regimes": [
+    {
+      "regime": "BULLISH_HIGH_VOL",
+      "observation_count": 9,
+      "percentage": 30.0,
+      "percentage_of_observations": 30.0,
+      "start_date": "2026-08-28T00:00:00Z",
+      "end_date": "2026-09-12T00:00:00Z"
+    },
+    {
+      "regime": "BEARISH_LOW_VOL",
+      "observation_count": 8,
+      "percentage": 26.67,
+      "percentage_of_observations": 26.67,
+      "start_date": "2026-08-25T00:00:00Z",
+      "end_date": "2026-09-18T00:00:00Z"
+    },
+    {
+      "regime": "UNKNOWN",
+      "observation_count": 9,
+      "percentage": 30.0,
+      "percentage_of_observations": 30.0,
+      "start_date": "2026-08-21T00:00:00Z",
+      "end_date": "2026-08-29T00:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## 19. Strategy Performance by Market Regime
+
+### `GET /market/{asset}/regimes/performance`
+
+Evaluates the factual performance and risk metrics (observations, trades, compound return, maximum drawdown) of each quantitative strategy across detected market regimes. Factual metrics only; no subjective ranking or "winner/loser" labeling.
+
+#### Query Parameters
+
+Same query parameters as `/regimes` (`trend_period`, `volatility_window`, `volatility_threshold`, `trend_threshold`, `refresh`).
+
+#### Response: `200 OK`
+```json
+{
+  "asset": "NVIDIA",
+  "symbol": "NVDA",
+  "source": "Twelve Data",
+  "parameters": {
+    "trend_period": 10,
+    "volatility_window": 5,
+    "volatility_threshold": 2.15,
+    "trend_threshold": 0.0
+  },
+  "performances": [
+    {
+      "strategy": "sma_crossover",
+      "regime": "BULLISH_HIGH_VOL",
+      "observations": 9,
+      "trades": 1,
+      "total_return": 3.45,
+      "maximum_drawdown": 1.2
+    },
+    {
+      "strategy": "ema_trend",
+      "regime": "BEARISH_LOW_VOL",
+      "observations": 8,
+      "trades": 2,
+      "total_return": -0.85,
+      "maximum_drawdown": 2.1
+    }
+  ]
+}
+```
+
+---
+
 ## Common Error Codes
 
 | Status Code | Reason | Cause |

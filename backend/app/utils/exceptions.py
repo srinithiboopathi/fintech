@@ -265,5 +265,17 @@ class InsufficientHistoricalDataError(AlphaVantageBaseException):
         )
 
 
-
-
+# Step 11: Market Regime Analysis Exceptions
+class InvalidRegimeParameterError(AlphaVantageBaseException):
+    """Raised when market regime parameters (trend period, volatility window, thresholds) are invalid."""
+    def __init__(
+        self,
+        message: str = "Invalid market regime parameters supplied.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INVALID_REGIME_PARAMETER",
+            details=details
+        )
