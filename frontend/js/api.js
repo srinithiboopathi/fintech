@@ -16,7 +16,7 @@ class QuantexaApiClient {
     } else if (window.location.origin.includes('8000')) {
       this.baseUrl = window.location.origin;
     } else {
-      this.baseUrl = 'http://127.0.0.1:8000';
+      this.baseUrl = 'https://fintech-bkpb.onrender.com';
     }
 
     // In-memory request deduplication and temporary response cache
