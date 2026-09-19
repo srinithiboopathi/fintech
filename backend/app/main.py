@@ -5,7 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.core.config import settings
+from backend.app.db.database import init_db
 from backend.app.api.health import router as health_router
+from backend.app.api.auth import router as auth_router
 from backend.app.api.market import router as market_router
 from backend.app.api.quant import router as quant_router
 from backend.app.api.correlation import router as correlation_router
@@ -13,6 +15,9 @@ from backend.app.api.strategies import router as strategies_router
 from backend.app.api.backtesting import router as backtesting_router
 from backend.app.api.robustness import router as robustness_router
 from backend.app.api.regimes import router as regimes_router
+
+# Initialize database tables
+init_db()
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -48,6 +53,7 @@ def root():
 
 # API v1 routes
 app.include_router(health_router, prefix=settings.API_V1_PREFIX)
+app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
 app.include_router(market_router, prefix=settings.API_V1_PREFIX)
 app.include_router(quant_router, prefix=settings.API_V1_PREFIX)
 app.include_router(correlation_router, prefix=settings.API_V1_PREFIX)

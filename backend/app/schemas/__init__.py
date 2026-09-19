@@ -70,6 +70,13 @@ from backend.app.schemas.regimes import (
     RegimeSummaryStatistics,
     RegimeResponse,
 )
+from backend.app.schemas.auth import (
+    UserRegisterRequest,
+    UserLoginRequest,
+    UserResponse,
+    TokenResponse,
+    MessageResponse,
+)
 
 __all__ = [
     "MarketDataPoint",
@@ -126,6 +133,12 @@ __all__ = [
     "TransitionEvent",
     "RegimeSummaryStatistics",
     "RegimeResponse",
+    "UserRegisterRequest",
+    "UserLoginRequest",
+    "UserResponse",
+    "TokenResponse",
+    "MessageResponse",
 ]
+
 
 

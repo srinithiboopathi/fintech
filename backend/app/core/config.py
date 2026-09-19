@@ -29,9 +29,14 @@ class Settings(BaseSettings):
             return v
         return ["http://localhost:5173", "http://127.0.0.1:5173"]
 
-    DATABASE_URL: str = "postgresql://quantlab_user:quantlab_password@localhost:5432/quantlab_db"
-    SECRET_KEY: str = "quantlab-secret-key-development"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    # Database Configuration (SQLite local development default, PostgreSQL production ready)
+    DATABASE_URL: str = "sqlite:///./quantlab.db"
+    
+    # JWT Authentication & Security
+    SECRET_KEY: str = "quantlab-secret-key-development-jwt-auth-2025"
+    JWT_SECRET_KEY: str = "quantlab-secret-key-development-jwt-auth-2025"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
     model_config = {
         "case_sensitive": True,

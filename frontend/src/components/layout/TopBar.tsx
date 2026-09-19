@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, NavLink } from 'react-router-dom';
-import { Menu, Server, ShieldCheck, Clock, Filter } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Menu, Server, Clock, Filter, LogOut } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { checkHealth } from '../../lib/api';
+import { authApi } from '../../api';
 
 interface TopBarProps {
   onToggleSidebar: () => void;
@@ -22,7 +23,8 @@ const pageTitles: Record<string, string> = {
 
 export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
   const location = useLocation();
-  const { selectedAsset, setSelectedAsset, backendHealthy, setBackendHealthy } = useAppStore();
+  const navigate = useNavigate();
+  const { selectedAsset, setSelectedAsset, backendHealthy, setBackendHealthy, user, isDemo, logout } = useAppStore();
   const [utcTime, setUtcTime] = useState<string>('');
 
   useEffect(() => {
@@ -47,7 +49,22 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
     testHealth();
   }, [setBackendHealthy]);
 
+  const handleLogout = async () => {
+    try {
+      if (!isDemo) {
+        await authApi.logout();
+      }
+    } catch {
+      // Ignore logout errors and proceed with client state clearance
+    } finally {
+      logout();
+      navigate('/login');
+    }
+  };
+
   const currentTitle = pageTitles[location.pathname] || 'QUANTLAB Platform';
+  const displayEmail = user?.email || (isDemo ? 'demo.analyst' : 'analyst');
+  const userInitial = (user?.full_name ? user.full_name[0] : user?.email ? user.email[0] : 'Q').toUpperCase();
 
   return (
     <header className="h-14 bg-[#0D111A] border-b border-[#1E293B] px-4 lg:px-6 flex items-center justify-between sticky top-0 z-30 shrink-0">
@@ -74,7 +91,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
         </div>
       </div>
 
-      {/* Right side: Asset selector + Date/Filter placeholder + Telemetry + MAID Profile */}
+      {/* Right side: Asset selector + Telemetry + User profile + Logout */}
       <div className="flex items-center space-x-2 md:space-x-3 shrink-0">
         {/* Asset Quick Switcher */}
         <div className="flex items-center bg-[#121824] border border-[#1E293B] rounded p-0.5 text-xs font-mono">
@@ -137,18 +154,33 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar }) => {
           )}
         </div>
 
-        {/* MAID Profile Placeholder */}
-        <NavLink
-          to="/login"
-          className="flex items-center space-x-1.5 bg-[#121824] hover:bg-[#182030] border border-[#1E293B] px-2 py-1 rounded text-xs font-mono text-slate-300 transition-colors"
-        >
-          <div className="w-4 h-4 rounded-full bg-cyan-900/60 border border-cyan-500/50 flex items-center justify-center text-[9px] text-cyan-300">
-            M
+        {/* Authenticated User Pill */}
+        <div className="flex items-center space-x-2 bg-[#121824] border border-[#1E293B] px-2.5 py-1 rounded text-xs font-mono text-slate-300">
+          <div className="w-4 h-4 rounded-full bg-cyan-950 border border-cyan-500/50 flex items-center justify-center text-[9px] text-cyan-300 font-bold">
+            {userInitial}
           </div>
-          <span className="hidden md:inline text-[11px] text-slate-300">MAID Auth</span>
-          <ShieldCheck className="w-3 h-3 text-cyan-400" />
-        </NavLink>
+          <span className="hidden md:inline text-[11px] text-slate-300 max-w-[120px] truncate" title={displayEmail}>
+            {user?.full_name || displayEmail}
+          </span>
+          {isDemo && (
+            <span className="text-[9px] px-1 py-0.2 rounded bg-amber-950 text-amber-400 border border-amber-800/60 font-semibold">
+              DEMO
+            </span>
+          )}
+        </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center space-x-1 bg-[#121824] hover:bg-rose-950/40 hover:text-rose-300 hover:border-rose-800/60 border border-[#1E293B] px-2 py-1 rounded text-xs font-mono text-slate-400 transition-colors"
+          title="Sign out of QuantLab"
+          aria-label="Sign out"
+        >
+          <LogOut className="w-3 h-3" />
+          <span className="hidden sm:inline text-[11px]">Logout</span>
+        </button>
       </div>
     </header>
   );
 };
+

@@ -9,6 +9,7 @@ from backend.app.services.backtesting_service import backtest_service, BacktestS
 
 from backend.app.services.robustness_service import robustness_service, RobustnessService
 from backend.app.services.regime_service import regime_service, RegimeService
+from backend.app.services.auth_service import auth_service, AuthService
 
 __all__ = [
     "market_service",
@@ -25,6 +26,8 @@ __all__ = [
     "RobustnessService",
     "regime_service",
     "RegimeService",
+    "auth_service",
+    "AuthService",
 ]
 
 

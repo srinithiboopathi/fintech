@@ -106,26 +106,61 @@ Frontend Terminal UI will be accessible at `http://localhost:5173`.
 
 ---
 
+## 🔐 Authentication & Session Access
+
+QuantLab includes a functional email/password authentication system built on FastAPI, SQLite persistence, bcrypt password hashing, and JWT Bearer tokens.
+
+### Creating an Account & Logging In
+1. Navigate to `/login` (or click **Email Login** / **Enter QuantLab** on the landing page).
+2. To create a new account: Select **Create Account**, enter your email, password (min 6 characters), and optional name, then click **Create Account →**.
+3. To sign in: Select **Sign In**, enter your registered email and password, then click **Continue →**.
+4. **Demo Analyst Mode**: For immediate evaluation, click **ENTER AS DEMO ANALYST** to instantly launch an authenticated evaluation session without registration.
+5. **Session Persistence**: JWT access tokens are securely managed in `localStorage`. Page refreshes maintain authentication, and the **Logout** button on the top bar cleanly clears credentials.
+
+---
+
 ## 🧭 QuantLab Dashboard Routes
 
-| Route | View | Description |
-| :--- | :--- | :--- |
-| `/` | **Landing Page** | Institutional overview, methodology primer, system architecture. |
-| `/login` | **MAID Terminal Gateway** | Secure institutional gateway interface. |
-| `/dashboard` | **Terminal Overview** | Multi-asset scorecard, normalized performance, Pearson matrix heatmap, live regime state. |
-| `/market-analysis` | **Market Analysis** | Price & Moving Averages (SMA/EMA), daily vs cumulative returns, underwater drawdown curves. |
-| `/correlation` | **Correlation Lab** | Interactive cross-asset correlation matrix, pairwise metrics, rolling window dynamics, aligned comparative tables. |
-| `/strategy-builder` | **Strategy Builder** | Signal generation for SMA, EMA, Momentum & Mean Reversion with BUY/SELL chart overlays. |
-| `/backtesting` | **Backtest Simulator** | Institutional portfolio simulation, equity curve vs Buy & Hold benchmark, friction costs, drawdown, trade log. |
-| `/trade-history` | **Trade Execution Ledger** | Session trade history, win/loss breakdown, holding period analysis, open position tracking. |
-| `/robustness` | **Robustness Lab** | Cartesian hyperparameter sensitivity sweeps, 2D stability heatmaps, friction testing, unranked tables. |
-| `/market-regimes` | **Market Regimes** | Bull/Bear trend & High/Low volatility classification timeline, descriptive segment statistics, state transitions. |
-| `/research-report` | **Research Report** | Exportable quantitative summary teardown across risk, strategies, regimes, and correlation dynamics. |
+| Route | View | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `/` | **Landing Page** | Institutional overview, methodology primer, system architecture. | Public |
+| `/login` | **Email Login & Gateway** | Secure email/password login, account registration, and demo access. | Public |
+| `/dashboard` | **Terminal Overview** | Multi-asset scorecard, normalized performance, Pearson matrix heatmap, live regime state. | Protected |
+| `/market-analysis` | **Market Analysis** | Price & Moving Averages (SMA/EMA), daily vs cumulative returns, underwater drawdown curves. | Protected |
+| `/correlation` | **Correlation Lab** | Interactive cross-asset correlation matrix, pairwise metrics, rolling window dynamics, aligned comparative tables. | Protected |
+| `/strategy-builder` | **Strategy Builder** | Signal generation for SMA, EMA, Momentum & Mean Reversion with BUY/SELL chart overlays. | Protected |
+| `/backtesting` | **Backtest Simulator** | Institutional portfolio simulation, equity curve vs Buy & Hold benchmark, friction costs, drawdown, trade log. | Protected |
+| `/trade-history` | **Trade Execution Ledger** | Session trade history, win/loss breakdown, holding period analysis, open position tracking. | Protected |
+| `/robustness` | **Robustness Lab** | Cartesian hyperparameter sensitivity sweeps, 2D stability heatmaps, friction testing, unranked tables. | Protected |
+| `/market-regimes` | **Market Regimes** | Bull/Bear trend & High/Low volatility classification timeline, descriptive segment statistics, state transitions. | Protected |
+| `/research-report` | **Research Report** | Exportable quantitative summary teardown across risk, strategies, regimes, and correlation dynamics. | Protected |
+
+---
+
+## 📊 Dataset Coverage & Important Notes
+
+- **Gold Spot (`datasets/processed/gold_daily.csv`)**: Historical daily prices from 2013-01-02 to 2024-12-31.
+- **Bitcoin (`datasets/processed/bitcoin_daily.csv`)**: Historical daily prices covering the 2017 market cycle (**2017-01-01 to 2017-12-31**).
+  > [!NOTE]
+  > Bitcoin's historical dataset covers the 2017 calendar year. QuantLab automatically handles date alignment for cross-asset comparisons and correlation without forward-filling or fabricating synthetic data.
+- **NVIDIA (`datasets/processed/nvidia_daily.csv`)**: Historical daily prices from 2013-01-02 to 2024-12-31.
+- **Combined Market Data (`datasets/processed/market_data.csv`)**: Aligned multi-asset time series.
+
+---
+
+## ⚖️ Quantitative Methodology & Disclaimers
+
+- **Zero Look-Ahead Bias**: Quantitative indicators, moving averages, and strategy signals at time $t$ use only information available up to market close on date $t$. Backtest orders execute at date $t+1$.
+- **Friction Realism**: Portfolio backtesting simulates transaction friction (slippage + commissions) per trade execution.
+- **Descriptive Sensitivity**: Robustness parameter sweeps display empirical metric surfaces without ranking subjective "winner" strategies.
+- **Disclaimer**: *Historical performance does not guarantee future results. QuantLab is designed strictly for research, simulation, and analytical exploration.*
 
 ---
 
 ## 📖 Documentation
 
+- [Hackathon Judge Demo Script (5–8 Min)](file:///docs/demo-script.md)
+- [Hackathon Readiness Checklist](file:///docs/hackathon-checklist.md)
 - [Architecture Guide](file:///docs/architecture.md)
 - [API Reference](file:///docs/api.md)
 - [Data Dictionary](file:///docs/data-dictionary.md)

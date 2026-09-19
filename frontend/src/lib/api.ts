@@ -10,6 +10,18 @@ export const apiClient = axios.create({
   timeout: 30000,
 });
 
+// Request interceptor: attach Bearer token if available in localStorage
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem("quantlab_token");
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+
 // Response error handler helper
 export const extractErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {

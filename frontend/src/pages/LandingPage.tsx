@@ -50,7 +50,7 @@ export const LandingPage: React.FC = () => {
           <div className="flex items-center space-x-3">
             <NavLink to="/login">
               <Button variant="ghost" size="sm" className="font-mono text-xs text-slate-300 hover:text-white">
-                MAID Login
+                Email Login
               </Button>
             </NavLink>
             <NavLink to="/login">
