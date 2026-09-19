@@ -1,3 +1,5 @@
+export * from './api';
+
 export type AssetType = 'gold' | 'bitcoin' | 'nvidia';
 
 export interface AssetInfo {
