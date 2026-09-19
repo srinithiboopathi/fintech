@@ -23,6 +23,10 @@ from app.models.schemas import (
     StrategySignalsResponse,
     StrategyBacktestRequest,
     StrategyBacktestResponse,
+    StrategyComparisonRequest,
+    StrategyComparisonResponse,
+    RobustnessAnalysisRequest,
+    RobustnessAnalysisResponse,
 )
 from app.services.market_data import market_data_service
 from app.services.cache_manager import cache_manager
@@ -547,6 +551,56 @@ async def run_market_strategy_backtest(
     strategy-agnostic backtesting engine with Next-Observation Execution.
     """
     return await market_data_service.run_strategy_backtest(
+        asset_identifier=asset,
+        request=request,
+        refresh=refresh or False
+    )
+
+
+@router.post(
+    "/market/{asset}/strategy/compare",
+    response_model=StrategyComparisonResponse,
+    summary="Compare Trading Strategies",
+    tags=["Strategy Comparison"]
+)
+async def compare_market_strategies(
+    asset: str = Path(..., description="Target asset identifier: 'nvidia', 'bitcoin', or 'gold'"),
+    request: StrategyComparisonRequest = ...,
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Executes a side-by-side factual comparison across quantitative strategies under identical
+    market data, capital, fee, and causal execution conditions.
+    """
+    return await market_data_service.compare_strategies(
+        asset_identifier=asset,
+        request=request,
+        refresh=refresh or False
+    )
+
+
+@router.post(
+    "/market/{asset}/strategy/robustness",
+    response_model=RobustnessAnalysisResponse,
+    summary="Parameter Sensitivity & Robustness Analysis",
+    tags=["Strategy Robustness"]
+)
+async def analyze_strategy_robustness(
+    asset: str = Path(..., description="Target asset identifier: 'nvidia', 'bitcoin', or 'gold'"),
+    request: RobustnessAnalysisRequest = ...,
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Performs controlled parameter sensitivity testing over a bounded discrete grid
+    for a designated strategy, reporting factual performance across every tested configuration.
+    """
+    return await market_data_service.analyze_robustness(
         asset_identifier=asset,
         request=request,
         refresh=refresh or False

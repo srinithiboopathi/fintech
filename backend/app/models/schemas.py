@@ -479,6 +479,141 @@ class StrategyBacktestResponse(BaseModel):
     performance: BacktestPerformance = Field(..., description="Executive performance and risk statistics")
 
 
+# ==============================================================================
+# Step 10: Strategy Comparison & Robustness Analysis Models
+# ==============================================================================
+
+class StrategyComparisonItem(BaseModel):
+    """Factual performance metrics for a single strategy in the comparison matrix."""
+    strategy: str = Field(..., description="Strategy identifier: sma_crossover, ema_trend, momentum, mean_reversion")
+    parameters: Dict[str, Any] = Field(..., description="Configuration parameters used")
+    initial_capital: float = Field(..., description="Starting portfolio capital")
+    final_portfolio_value: float = Field(..., description="Terminal portfolio value")
+    total_return: float = Field(..., description="Cumulative percentage return")
+    total_trades: int = Field(..., description="Total executed trade count")
+    number_of_trades: int = Field(..., description="Total executed trade count (alias)")
+    winning_trades: int = Field(..., description="Count of profitable round-trip trades")
+    losing_trades: int = Field(..., description="Count of unprofitable round-trip trades")
+    win_rate_pct: Optional[float] = Field(None, description="Win rate percentage")
+    maximum_drawdown: float = Field(..., description="Maximum peak-to-trough decline percentage")
+    max_drawdown: float = Field(..., description="Maximum peak-to-trough decline percentage (alias)")
+    sharpe_ratio: Optional[float] = Field(None, description="Annualized Sharpe ratio")
+    total_fees_paid: float = Field(..., description="Total transaction fees incurred")
+    benchmark_return: float = Field(..., description="Baseline Buy-and-Hold total return percentage")
+    excess_return_vs_benchmark: float = Field(..., description="Strategy total return minus benchmark total return percentage")
+
+
+class StrategyComparisonRequest(BaseModel):
+    """Request payload to compare all or selected strategies under identical market assumptions."""
+    strategies: Optional[List[str]] = Field(
+        None,
+        description="Optional subset of strategies to compare. Defaults to all 4 supported strategies."
+    )
+    strategy_configs: Optional[Dict[str, Dict[str, Any]]] = Field(
+        default_factory=dict,
+        description="Optional custom parameter dictionary for each strategy identifier"
+    )
+    initial_capital: Optional[float] = Field(
+        100000.0,
+        description="Identical starting capital across all strategies (must be > 0)"
+    )
+    transaction_cost_rate: Optional[float] = Field(
+        0.001,
+        description="Identical transaction cost fraction across all strategies (must be >= 0)"
+    )
+    allocation: Optional[float] = Field(
+        1.0,
+        description="Identical cash allocation fraction across all strategies in (0, 1]"
+    )
+    allocation_fraction: Optional[float] = Field(
+        None,
+        description="Alias for allocation"
+    )
+
+
+class StrategyComparisonResponse(BaseModel):
+    """Comparative factual performance evaluation across strategies under identical market conditions."""
+    asset: str = Field(..., description="Asset display name")
+    symbol: str = Field(..., description="Asset market ticker symbol")
+    source: str = Field(default="Twelve Data", description="Market data source provider")
+    data_status: str = Field(default="calculated", description="Data processing status")
+    execution_model: str = Field(
+        default="Next-Observation (Signal at t executes at t+1 at P_{t+1})",
+        description="Causal execution assumption applied identically to all strategies"
+    )
+    observation_count: int = Field(..., description="Number of aligned historical observations")
+    start_date: Optional[str] = Field(None, description="Earliest observation timestamp")
+    end_date: Optional[str] = Field(None, description="Latest observation timestamp")
+    benchmark: BenchmarkResults = Field(..., description="Identical Buy-and-Hold benchmark results")
+    benchmark_buy_and_hold: BenchmarkResults = Field(..., description="Buy-and-Hold benchmark (alias)")
+    strategies: List[StrategyComparisonItem] = Field(..., description="Factual metrics for each strategy")
+
+
+class RobustnessCombinationResult(BaseModel):
+    """Performance metrics for one specific parameter combination in robustness testing."""
+    strategy: str = Field(..., description="Strategy identifier")
+    parameters: Dict[str, Any] = Field(..., description="Tested parameter set")
+    initial_capital: float = Field(..., description="Starting capital")
+    final_portfolio_value: float = Field(..., description="Terminal portfolio value")
+    total_return: float = Field(..., description="Cumulative percentage return")
+    total_trades: int = Field(..., description="Executed trade count")
+    number_of_trades: int = Field(..., description="Executed trade count (alias)")
+    maximum_drawdown: float = Field(..., description="Maximum drawdown percentage")
+    max_drawdown: float = Field(..., description="Maximum drawdown percentage (alias)")
+    sharpe_ratio: Optional[float] = Field(None, description="Annualized Sharpe ratio")
+    total_fees_paid: float = Field(..., description="Total fees paid")
+    benchmark_return: float = Field(..., description="Benchmark percentage return")
+    excess_return_vs_benchmark: float = Field(..., description="Strategy total return minus benchmark return")
+
+
+class RobustnessAnalysisRequest(BaseModel):
+    """Request payload to perform parameter sensitivity and robustness testing."""
+    strategy: str = Field(
+        ...,
+        description="Target strategy identifier: 'sma_crossover', 'ema_trend', 'momentum', 'mean_reversion'"
+    )
+    parameter_grid: Dict[str, List[Any]] = Field(
+        ...,
+        description="Dictionary mapping parameter names to lists of discrete test values"
+    )
+    initial_capital: Optional[float] = Field(
+        100000.0,
+        description="Starting capital (must be > 0)"
+    )
+    transaction_cost_rate: Optional[float] = Field(
+        0.001,
+        description="Transaction fee fraction (must be >= 0)"
+    )
+    allocation: Optional[float] = Field(
+        1.0,
+        description="Cash allocation fraction in (0, 1]"
+    )
+    allocation_fraction: Optional[float] = Field(
+        None,
+        description="Alias for allocation"
+    )
+
+
+class RobustnessAnalysisResponse(BaseModel):
+    """Comprehensive parameter sensitivity analysis response."""
+    asset: str = Field(..., description="Asset display name")
+    symbol: str = Field(..., description="Asset ticker symbol")
+    strategy: str = Field(..., description="Tested strategy identifier")
+    source: str = Field(default="Twelve Data", description="Market data source provider")
+    data_status: str = Field(default="calculated", description="Data processing status")
+    execution_model: str = Field(
+        default="Next-Observation (Signal at t executes at t+1 at P_{t+1})",
+        description="Causal execution assumption"
+    )
+    observation_count: int = Field(..., description="Total historical observations analyzed")
+    start_date: Optional[str] = Field(None, description="Earliest observation timestamp")
+    end_date: Optional[str] = Field(None, description="Latest observation timestamp")
+    benchmark: BenchmarkResults = Field(..., description="Buy-and-Hold baseline benchmark")
+    benchmark_buy_and_hold: BenchmarkResults = Field(..., description="Buy-and-Hold benchmark (alias)")
+    total_combinations_tested: int = Field(..., description="Total valid parameter configurations tested")
+    results: List[RobustnessCombinationResult] = Field(..., description="Factual metrics for each parameter combination")
+
+
 
 
 

@@ -3,8 +3,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2.6+-e92063.svg)](https://docs.pydantic.dev/)
-[![Pytest Tests](https://img.shields.io/badge/tests-150%20passed-success.svg)](#testing-instructions)
-[![Status](https://img.shields.io/badge/Milestone-Step%209%20Complete-emerald.svg)](#current-project-status)
+[![Pytest Tests](https://img.shields.io/badge/tests-170%20passed-success.svg)](#testing-instructions)
+[![Status](https://img.shields.io/badge/Milestone-Step%2010%20Complete-emerald.svg)](#current-project-status)
 
 ---
 
@@ -93,6 +93,12 @@ Simulates historical portfolio performance using generic trading signals (`BUY`,
 4. **Mean Reversion**: Rolling Z-score against lookback mean and standard deviation ($ddof=1$) with configurable trigger threshold (`entry_threshold`).
 
 All strategies generate discrete signals (`BUY`, `SELL`, `HOLD`), strictly enforce zero look-ahead bias, and seamlessly plug into the Step 8 simulation engine.
+
+### Strategy Comparison Framework
+Enables side-by-side comparative backtesting across all four quantitative strategies under identical assumptions (asset, period, initial capital, transaction fee rate, allocation, and causal execution). Returns purely factual metrics (final portfolio value, total return, number of trades, maximum drawdown, benchmark return, and excess return vs benchmark) without subjective winner/loser labels or artificial rankings.
+
+### Parameter Sensitivity & Robustness Analysis
+Evaluates parameter stability across discrete, user-bounded candidate grids (e.g. `short_period = [10, 20, 30]`, `long_period = [40, 50, 60]`). Enforces structural validity (`short_period < long_period`), bounds the grid to $\le 50$ combinations per request, and reports all results transparently with zero look-ahead bias and no automated selection bias.
 
 ---
 
@@ -240,6 +246,10 @@ LATEST_CACHE_TTL_SECONDS=60
 | `GET` | `/market/correlation` | `refresh` | Pairwise symmetric Pearson correlation matrix across multi-asset returns |
 | `GET` | `/market/correlation/rolling` | `window`, `asset1`, `asset2`, `refresh` | Configurable rolling Pearson correlation time series across asset pairs |
 | `POST` | `/market/{asset}/backtest` | `refresh` | Strategy-agnostic portfolio backtest with Next-Observation execution |
+| `POST` | `/market/{asset}/strategy/signals` | `refresh` | Compute timestamped signals for SMA Crossover, EMA Trend, Momentum, or Mean Reversion |
+| `POST` | `/market/{asset}/strategy/backtest` | `refresh` | End-to-end strategy backtest with equity curve, performance metrics, and benchmark |
+| `POST` | `/market/{asset}/strategy/compare` | `refresh` | Factual side-by-side comparison across all four strategies under identical assumptions |
+| `POST` | `/market/{asset}/strategy/robustness` | `refresh` | Parameter grid sensitivity and robustness analysis over bounded candidate ranges |
 
 For complete schemas and examples, see [`docs/api.md`](docs/api.md).
 
@@ -265,8 +275,9 @@ pytest backend/tests -v
 - `backend/tests/test_correlation.py` — Pearson matrix, date alignment, rolling series, HTTP 400 validation (19 tests)
 - `backend/tests/test_backtesting.py` — Backtesting engine, execution causality, accounting, fee modeling, benchmarks (26 tests)
 - `backend/tests/test_strategies.py` — SMA Crossover, EMA Trend, Momentum, Mean Reversion, Signals & Backtest APIs (40 tests)
+- `backend/tests/test_strategy_comparison.py` — Multi-strategy comparison, parameter combinations, look-ahead protection, bounds validation (20 tests)
 
-**Total: 150 automated tests (100% passing)**.
+**Total: 170 automated tests (100% passing)**.
 
 ---
 
@@ -284,7 +295,8 @@ pytest backend/tests -v
 | **Step 7: Correlation & Rolling Correlation** | **COMPLETE** | Multi-asset Pearson correlation matrix and rolling correlation series |
 | **Step 8: Strategy Backtesting Engine** | **COMPLETE** | Causal Next-Observation execution, accounting, fees, Buy & Hold benchmark |
 | **Step 9: Four Trading Strategies** | **COMPLETE** | SMA Crossover, EMA Trend, Momentum, Mean Reversion with zero look-ahead bias |
-| **Step 10+: Robustness & Market Regimes** | **NOT STARTED** | Reserved for subsequent milestone |
+| **Step 10: Strategy Comparison & Robustness** | **COMPLETE** | Multi-strategy comparative execution & bounded parameter sensitivity analysis |
+| **Step 11+: Market Regimes & Platform UI** | **NOT STARTED** | Reserved for subsequent milestone |
 
 
 ---

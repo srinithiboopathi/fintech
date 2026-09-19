@@ -474,3 +474,4 @@ class StrategyDispatcher:
 
 
 strategy_service = StrategyDispatcher()
+SUPPORTED_STRATEGIES = ["sma_crossover", "ema_trend", "momentum", "mean_reversion"]

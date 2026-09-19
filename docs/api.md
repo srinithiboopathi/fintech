@@ -815,11 +815,193 @@ Signals generated at observation $t$ execute at observation $t+1$ at close price
 
 ---
 
+## 15. Strategy Comparison
+
+### `POST /market/{asset}/strategy/compare`
+
+Runs an objective, side-by-side comparison across trading strategies evaluated under **strictly identical market conditions**:
+- Identical historical dataset and aligned time window
+- Identical starting capital (`initial_capital`)
+- Identical transaction fee percentage (`transaction_cost_rate`)
+- Identical portfolio allocation fraction (`allocation`)
+- Identical causal execution model ($t \to t+1$ at $P_{t+1}$)
+
+**Quantitative Integrity**:
+Results are strictly factual. Strategies are **never** ranked or labeled as "winner/best/loser".
+
+#### Path Parameters
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :---: | :--- |
+| `asset` | `string` | Yes | Target asset identifier: `nvidia`, `bitcoin`, `gold` |
+
+#### Request Body (`application/json`)
+
+```json
+{
+  "initial_capital": 100000.0,
+  "transaction_cost_rate": 0.001,
+  "allocation": 1.0,
+  "strategies": ["sma_crossover", "ema_trend", "momentum", "mean_reversion"]
+}
+```
+
+| Field | Type | Required | Default | Description |
+| :--- | :--- | :---: | :---: | :--- |
+| `initial_capital` | `float` | No | `100000.0` | Initial capital ($> 0$) |
+| `transaction_cost_rate` | `float` | No | `0.001` | Transaction fee rate ($\ge 0$) |
+| `allocation` | `float` | No | `1.0` | Cash allocation fraction in $(0, 1]$ |
+| `strategies` | `list` | No | All 4 | Optional subset of strategies to compare |
+| `strategy_configs` | `dict` | No | `{}` | Optional parameter overrides per strategy |
+
+#### Response: `200 OK`
+```json
+{
+  "asset": "NVIDIA",
+  "symbol": "NVDA",
+  "source": "Twelve Data",
+  "data_status": "calculated",
+  "execution_model": "Next-Observation (Signal at t executes at t+1 at P_{t+1})",
+  "observation_count": 30,
+  "start_date": "2026-08-07T00:00:00Z",
+  "end_date": "2026-09-18T00:00:00Z",
+  "benchmark": {
+    "benchmark_name": "Buy & Hold",
+    "initial_value": 100000.0,
+    "final_value": 99150.0,
+    "total_return_pct": -0.85,
+    "equity_curve": [...]
+  },
+  "strategies": [
+    {
+      "strategy": "sma_crossover",
+      "parameters": {"short_period": 20, "long_period": 50},
+      "initial_capital": 100000.0,
+      "final_portfolio_value": 100000.0,
+      "total_return": 0.0,
+      "total_trades": 0,
+      "number_of_trades": 0,
+      "winning_trades": 0,
+      "losing_trades": 0,
+      "win_rate_pct": null,
+      "maximum_drawdown": 0.0,
+      "max_drawdown": 0.0,
+      "sharpe_ratio": null,
+      "total_fees_paid": 0.0,
+      "benchmark_return": -0.85,
+      "excess_return_vs_benchmark": 0.85
+    },
+    {
+      "strategy": "mean_reversion",
+      "parameters": {"lookback": 20, "entry_threshold": 1.0},
+      "initial_capital": 100000.0,
+      "final_portfolio_value": 104655.68,
+      "total_return": 4.66,
+      "total_trades": 1,
+      "number_of_trades": 1,
+      "winning_trades": 1,
+      "losing_trades": 0,
+      "win_rate_pct": 100.0,
+      "maximum_drawdown": -0.1,
+      "max_drawdown": -0.1,
+      "sharpe_ratio": 1.15,
+      "total_fees_paid": 194.8,
+      "benchmark_return": -0.85,
+      "excess_return_vs_benchmark": 5.51
+    }
+  ]
+}
+```
+
+---
+
+## 16. Parameter Robustness & Sensitivity Analysis
+
+### `POST /market/{asset}/strategy/robustness`
+
+Performs controlled, bounded parameter sensitivity testing across discrete parameter grids for a chosen strategy.
+
+**Platform Protection**:
+- Parameter combinations are capped at a maximum of **50 combinations** per request to prevent Denial of Service.
+- Validates all values and enforces logical constraints (e.g. `short_period < long_period` for SMA).
+- Every evaluated combination is returned factually without silently selecting the "optimal" or "best" setting.
+
+#### Request Body (`application/json`)
+
+```json
+{
+  "strategy": "ema_trend",
+  "parameter_grid": {
+    "ema_period": [10, 20, 30]
+  },
+  "initial_capital": 100000.0,
+  "transaction_cost_rate": 0.001,
+  "allocation": 1.0
+}
+```
+
+#### Response: `200 OK`
+```json
+{
+  "asset": "Bitcoin",
+  "symbol": "BTC/USD",
+  "strategy": "ema_trend",
+  "source": "Twelve Data",
+  "data_status": "calculated",
+  "execution_model": "Next-Observation (Signal at t executes at t+1 at P_{t+1})",
+  "observation_count": 30,
+  "start_date": "2026-08-21T00:00:00Z",
+  "end_date": "2026-09-19T00:00:00Z",
+  "benchmark": {
+    "benchmark_name": "Buy & Hold",
+    "initial_value": 100000.0,
+    "final_value": 103670.0,
+    "total_return_pct": 3.67,
+    "equity_curve": [...]
+  },
+  "total_combinations_tested": 3,
+  "results": [
+    {
+      "strategy": "ema_trend",
+      "parameters": {"ema_period": 10},
+      "initial_capital": 100000.0,
+      "final_portfolio_value": 98400.47,
+      "total_return": -1.6,
+      "total_trades": 7,
+      "number_of_trades": 7,
+      "maximum_drawdown": -2.54,
+      "max_drawdown": -2.54,
+      "sharpe_ratio": -0.62,
+      "total_fees_paid": 595.2,
+      "benchmark_return": 3.67,
+      "excess_return_vs_benchmark": -5.27
+    },
+    {
+      "strategy": "ema_trend",
+      "parameters": {"ema_period": 20},
+      "initial_capital": 100000.0,
+      "final_portfolio_value": 100440.6,
+      "total_return": 0.44,
+      "total_trades": 3,
+      "number_of_trades": 3,
+      "maximum_drawdown": -0.1,
+      "max_drawdown": -0.1,
+      "sharpe_ratio": 0.22,
+      "total_fees_paid": 298.5,
+      "benchmark_return": 3.67,
+      "excess_return_vs_benchmark": -3.23
+    }
+  ]
+}
+```
+
+---
+
 ## Common Error Codes
 
 | Status Code | Reason | Cause |
 | :--- | :--- | :--- |
-| `400 Bad Request` | Invalid Parameter | Provided parameter (`initial_capital`, `transaction_cost_rate`, `allocation`, `short_period`, `long_period`, `lookback`, etc.) is invalid or out of bounds. |
+| `400 Bad Request` | Invalid Parameter | Provided parameter (`initial_capital`, `transaction_cost_rate`, `allocation`, `parameter_grid`, etc.) is invalid, out of bounds, or exceeds bounded limit (50 combinations). |
 | `404 Not Found` | Unsupported Asset | Requested asset identifier is not mapped to NVDA, BTC/USD, or XAU/USD. |
 | `502 Bad Gateway` | Upstream API Error | Upstream market data provider failed or rate limit exceeded with no valid cache. |
 | `504 Gateway Timeout` | Provider Timeout | Upstream provider failed to respond within connection timeout window. |

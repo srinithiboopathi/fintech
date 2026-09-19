@@ -3,7 +3,7 @@
 This document details the mathematical models, formulas, statistical assumptions, and numerical implementations active in the **Quantexa** analytics platform.
 
 > [!NOTE]
-> This document describes the currently implemented quantitative algorithms (Steps 1–8). Future algorithmic models (such as specific systematic strategy rules) are reserved for subsequent steps.
+> This document describes the currently implemented quantitative algorithms (Steps 1–10). Future algorithmic models (such as market-regime classification and portfolio allocation) are reserved for subsequent steps.
 
 ---
 
@@ -284,6 +284,65 @@ Quantexa implements four canonical quantitative trading strategies conforming to
   - **`BUY`**: $z_t \le -\text{entry\_threshold}$ (oversold deviation from rolling mean).
   - **`SELL`**: $z_t \ge \text{entry\_threshold}$ (overbought deviation from rolling mean).
   - **`HOLD`**: $-\text{entry\_threshold} < z_t < \text{entry\_threshold}$ or insufficient warmup window.
+
+---
+
+## Strategy Comparison & Robustness Analysis
+
+Step 10 introduces systematic cross-strategy evaluation and parameter sensitivity analysis, strictly reusing the Step 8 `BacktestingEngine` and Step 9 signal generators.
+
+### 1. Multi-Strategy Comparative Framework
+
+To evaluate the relative efficacy of different quantitative paradigms (trend-following, momentum, and mean-reverting) across identical market environments, the platform provides side-by-side comparison across all four strategies:
+- **SMA Crossover**
+- **EMA Trend**
+- **Momentum**
+- **Mean Reversion**
+
+#### Standardization & Baseline Invariants:
+1. **Identical Market Sample**: All strategies are evaluated over the exact same cleaned historical time series $\{P_0, P_1, \dots, P_N\}$.
+2. **Identical Portfolio Assumptions**:
+   - Starting Capital: $\text{initial\_capital} > 0$ (default: \$10,000)
+   - Transaction Cost: $\text{transaction\_cost\_rate} \ge 0$ (default: 0.1%)
+   - Capital Allocation: $\text{allocation} \in (0, 1]$ (default: 100%)
+3. **Identical Causal Execution**:
+   - Signals generated at date $t$ execute strictly at the next bar $t+1$ at market close $P_{t+1}$.
+   - No forward leakage or look-ahead bias across all strategy evaluations.
+4. **Passive Baseline Benchmark**:
+   - An identical Buy-and-Hold benchmark is simulated across the identical window with identical transaction fee application.
+5. **Excess Return Formulation**:
+   $$\text{Excess Return} = \text{Total Return}_{\text{strategy}} - \text{Total Return}_{\text{benchmark}}$$
+   Expressed in percentage points, rounded to 4 decimal places.
+
+#### Strict Non-Judgmental Metric Reporting:
+The platform adheres to quantitative neutrality. Results are strictly factual metrics:
+- Strategy identifier & active parameters
+- Initial capital & final portfolio value
+- Total percentage return & maximum drawdown
+- Total number of executed trades
+- Benchmark total return & excess return vs benchmark
+
+The platform **never** labels strategies as "best", "worst", "winner", or "loser", nor does it apply arbitrary composite ranking or scoring functions.
+
+---
+
+### 2. Parameter Sensitivity & Robustness Engine
+
+Quantitative strategies are highly susceptible to **overfitting** (curve-fitting to specific historical samples). To analyze parameter stability without introducing data-snooping bias, Quantexa implements a controlled, bounded sensitivity engine.
+
+#### Design Principles:
+1. **Controlled Discrete Grids**:
+   - Users define explicit, discrete candidate lists for each parameter (e.g. `short_period = [10, 20, 30]`, `long_period = [40, 50, 60]`).
+   - The engine computes Cartesian product combinations constrained by logical boundaries (e.g. `short_period < long_period`).
+2. **Deterministic Bounding**:
+   - Parameter values must be strictly positive and finite.
+   - The total number of combinations per analysis request is capped at $\le 50$ (`MAX_ROBUSTNESS_COMBINATIONS = 50`) to prevent computational resource exhaustion and unbounded runaway searches.
+3. **No Automated "Optimal" Selection**:
+   - The engine does **not** perform automated gradient descent, genetic optimization, or "peak picking" to recommend an optimal parameter set.
+   - All evaluated parameter sets are returned transparently with their full performance metrics so researchers can inspect the shape and stability of the parameter surface.
+4. **Causal Invariance Across Configurations**:
+   - Each parameter configuration runs independently through the causal `BacktestingEngine`.
+   - Modifying future market bars does not alter earlier signals, trades, or portfolio equity for any parameter set.
 
 ---
 

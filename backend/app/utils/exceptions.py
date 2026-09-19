@@ -219,5 +219,51 @@ class InvalidStrategyParameterError(AlphaVantageBaseException):
         )
 
 
+# Step 10: Strategy Comparison & Robustness Analysis Exceptions
+class InvalidComparisonRequestError(AlphaVantageBaseException):
+    """Raised when strategy comparison configuration or parameters are invalid."""
+    def __init__(
+        self,
+        message: str = "Invalid strategy comparison request.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INVALID_COMPARISON_REQUEST",
+            details=details
+        )
+
+
+class InvalidRobustnessParameterError(AlphaVantageBaseException):
+    """Raised when robustness testing parameter grid is empty, invalid, or exceeds bounded ranges."""
+    def __init__(
+        self,
+        message: str = "Invalid robustness parameter grid supplied.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INVALID_ROBUSTNESS_PARAMETER",
+            details=details
+        )
+
+
+class InsufficientHistoricalDataError(AlphaVantageBaseException):
+    """Raised when insufficient historical observations exist to run analysis."""
+    def __init__(
+        self,
+        message: str = "Insufficient historical observations available.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INSUFFICIENT_HISTORICAL_DATA",
+            details=details
+        )
+
+
 
 

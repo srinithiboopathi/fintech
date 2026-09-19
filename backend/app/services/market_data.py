@@ -23,6 +23,10 @@ from app.models.schemas import (
     StrategySignalsResponse,
     StrategyBacktestRequest,
     StrategyBacktestResponse,
+    StrategyComparisonRequest,
+    StrategyComparisonResponse,
+    RobustnessAnalysisRequest,
+    RobustnessAnalysisResponse,
 )
 from app.services.cache_manager import cache_manager
 from app.services.twelve_data import twelve_data_service
@@ -33,6 +37,7 @@ from app.services.risk_analysis import risk_analysis_service
 from app.services.correlation import correlation_service
 from app.services.backtesting import backtesting_service
 from app.services.strategies import strategy_service
+from app.services.strategy_comparison import strategy_comparison_service
 
 
 from app.utils.exceptions import (
@@ -1084,6 +1089,61 @@ class MarketDataService:
             benchmark=bt_res.benchmark,
             benchmark_buy_and_hold=bt_res.benchmark,
             performance=bt_res.performance
+        )
+
+    async def compare_strategies(
+        self,
+        asset_identifier: str,
+        request: StrategyComparisonRequest,
+        refresh: bool = False
+    ) -> StrategyComparisonResponse:
+        """
+        Runs strategy comparison across requested strategies on identical cleaned data
+        and backtesting conditions.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+        clean_points = clean_resp.data
+
+        return strategy_comparison_service.compare_strategies(
+            clean_points=clean_points,
+            request=request,
+            asset_name=asset_name,
+            symbol=symbol,
+            source=clean_resp.source
+        )
+
+    async def analyze_robustness(
+        self,
+        asset_identifier: str,
+        request: RobustnessAnalysisRequest,
+        refresh: bool = False
+    ) -> RobustnessAnalysisResponse:
+        """
+        Executes bounded parameter sensitivity testing for a strategy over cleaned market data.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+        clean_points = clean_resp.data
+
+        return strategy_comparison_service.analyze_robustness(
+            clean_points=clean_points,
+            request=request,
+            asset_name=asset_name,
+            symbol=symbol,
+            source=clean_resp.source
         )
 
 market_data_service = MarketDataService()
