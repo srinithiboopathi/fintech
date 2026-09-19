@@ -546,7 +546,7 @@ class QuantexaApp {
 
       // Load Rolling Correlation
       const pair = document.getElementById('select-corr-pair')?.value || 'nvidia:bitcoin';
-      const windowVal = parseInt(document.getElementById('select-corr-window')?.value || '30', 10);
+      const windowVal = parseInt(document.getElementById('select-corr-window')?.value || '5', 10);
       const [asset1, asset2] = pair.split(':');
 
       const rolling = await this.api.getRollingCorrelation(asset1, asset2, windowVal, refresh);

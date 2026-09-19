@@ -324,11 +324,14 @@ class QuantexaChartManager {
             label: `${pairLabel} (${window}-day rolling)`,
             data: series,
             borderColor: '#6366f1',
-            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            backgroundColor: 'rgba(99, 102, 241, 0.15)',
             fill: true,
             borderWidth: 2,
-            tension: 0.1,
-            pointRadius: 0
+            tension: 0.2,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#818cf8',
+            spanGaps: true
           },
           {
             label: 'Zero Baseline',
