@@ -1,19 +1,19 @@
 import pandas as pd
+from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.analysis.metrics import calculate_performance_metrics
 from app.backtesting.engine import run_backtest
 from app.backtesting.position_sizing import FullCapitalSizer
 from app.strategies.ema_trend import EMATrendStrategy
 from app.strategies.sma_crossover import SMACrossoverStrategy
 
+
 router = APIRouter(prefix="/backtest", tags=["Backtest"])
 
-DATA_ROOT = (
-    __import__("pathlib").Path(__file__).resolve().parents[3]
-    / "datasets"
-    / "raw"
-)
+
+DATA_ROOT = Path(__file__).resolve().parents[3] / "datasets" / "raw"
 
 DATASETS = {
     "gold": DATA_ROOT / "gold" / "gold_raw.csv",
@@ -56,8 +56,10 @@ def run_backtest_api(request: BacktestRequest):
 
     if strategy_name == "sma":
         strategy = SMACrossoverStrategy()
+
     elif strategy_name == "ema":
         strategy = EMATrendStrategy()
+
     else:
         raise HTTPException(
             status_code=400,
@@ -72,15 +74,23 @@ def run_backtest_api(request: BacktestRequest):
         position_sizer=FullCapitalSizer(),
     )
 
+    metrics = calculate_performance_metrics(
+        equity=result.equity_curve,
+        initial_capital=request.initial_capital,
+    )
+
     trades = []
+
     for trade in result.trades:
         trades.append(
             {
                 "date": str(trade.date),
-                "side": trade.side,
+                "action": trade.action,
                 "price": float(trade.price),
+                "position": int(trade.position),
                 "quantity": float(trade.quantity),
-                "cost": float(trade.cost),
+                "transaction_cost": float(trade.transaction_cost),
+                "portfolio_value": float(trade.portfolio_value),
             }
         )
 
@@ -91,6 +101,8 @@ def run_backtest_api(request: BacktestRequest):
         "final_portfolio_value": float(result.final_portfolio_value),
         "total_return": float(result.total_return),
         "maximum_drawdown": float(result.maximum_drawdown),
+        "annualized_volatility": float(metrics["annualized_volatility"]),
+        "sharpe_ratio": float(metrics["sharpe_ratio"]),
         "trade_count": len(trades),
         "trades": trades,
     }
