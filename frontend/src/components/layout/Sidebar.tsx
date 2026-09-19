@@ -12,7 +12,6 @@ import {
   FileText,
   X
 } from 'lucide-react';
-import { Badge } from '../ui/Badge';
 import { cn } from '../../lib/utils';
 
 interface SidebarProps {
@@ -45,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Mobile backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
@@ -53,22 +52,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar container */}
       <aside
         className={cn(
-          "fixed top-0 left-0 bottom-0 z-50 w-64 bg-[#0E131C] border-r border-[#232E42] flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static",
+          "fixed top-0 left-0 bottom-0 z-50 w-64 bg-[#0A0E17] border-r border-[#1E293B] flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static shrink-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand header */}
-        <div className="h-16 px-5 border-b border-[#232E42] flex items-center justify-between bg-[#111722]">
+        <div className="h-14 px-4 border-b border-[#1E293B] flex items-center justify-between bg-[#0D111A]">
           <NavLink to="/dashboard" className="flex items-center space-x-2.5 group">
-            <div className="w-8 h-8 rounded bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-sm group-hover:border-cyan-400 transition-colors">
+            <div className="w-7 h-7 rounded bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-xs group-hover:border-cyan-400 transition-colors">
               QL
             </div>
             <div>
               <div className="flex items-center space-x-1.5">
-                <span className="font-bold text-sm tracking-wider text-slate-100 font-mono">QUANTLAB</span>
+                <span className="font-bold text-xs tracking-wider text-slate-100 font-mono">QUANTLAB</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
               </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">
+              <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider block -mt-0.5">
                 Quant Terminal
               </span>
             </div>
@@ -76,20 +75,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded hover:bg-[#161F2E]"
+            className="lg:hidden p-1 text-slate-400 hover:text-white rounded hover:bg-[#161F2E]"
             aria-label="Close sidebar"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Section title */}
-        <div className="px-5 py-3 text-[10px] font-mono font-semibold tracking-widest text-slate-500 uppercase">
-          Core Analytics
+        <div className="px-4 py-2.5 text-[9px] font-mono font-semibold tracking-widest text-slate-500 uppercase">
+          Terminal Navigation
         </div>
 
         {/* Navigation list */}
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -101,50 +100,50 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 }}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center justify-between px-3 py-2 rounded text-xs font-mono transition-all group",
+                    "flex items-center justify-between px-3 py-2 rounded text-xs font-mono transition-all group relative",
                     isActive
-                      ? "bg-cyan-950/50 text-cyan-400 border border-cyan-800/60 font-medium"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-[#161F2E] border border-transparent"
+                      ? "bg-cyan-950/40 text-cyan-300 font-medium border-l-2 border-cyan-400 pl-2.5"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-[#121824] border-l-2 border-transparent"
                   )
                 }
               >
                 <div className="flex items-center space-x-2.5">
-                  <Icon className="w-4 h-4 transition-colors group-hover:text-cyan-400" />
+                  <Icon className="w-3.5 h-3.5 transition-colors group-hover:text-cyan-400 text-slate-400" />
                   <span>{item.name}</span>
                 </div>
                 {item.phase > 1 && (
-                  <Badge variant="muted" size="xs">
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[#121824] text-slate-500 border border-[#1E293B]">
                     P{item.phase}
-                  </Badge>
+                  </span>
                 )}
               </NavLink>
             );
           })}
         </nav>
 
-        {/* Asset Universe Quick Indicator */}
-        <div className="p-4 border-t border-[#232E42] bg-[#0B0E14]/60">
-          <div className="text-[10px] font-mono font-semibold tracking-widest text-slate-500 uppercase mb-2.5">
-            Asset Universe
+        {/* Asset Coverage Section */}
+        <div className="p-3 border-t border-[#1E293B] bg-[#080B12]">
+          <div className="text-[9px] font-mono font-semibold tracking-widest text-slate-500 uppercase mb-2">
+            Target Universe
           </div>
-          <div className="grid grid-cols-3 gap-1.5 text-center font-mono text-[10px]">
-            <div className="bg-[#161F2E] border border-amber-800/40 text-amber-300 py-1 rounded">
+          <div className="grid grid-cols-3 gap-1 text-center font-mono text-[10px]">
+            <div className="bg-[#121824] border border-amber-800/40 text-amber-300 py-1 rounded">
               GOLD
             </div>
-            <div className="bg-[#161F2E] border border-orange-800/40 text-orange-400 py-1 rounded">
+            <div className="bg-[#121824] border border-orange-800/40 text-orange-400 py-1 rounded">
               BTC
             </div>
-            <div className="bg-[#161F2E] border border-lime-800/40 text-lime-400 py-1 rounded">
+            <div className="bg-[#121824] border border-lime-800/40 text-lime-400 py-1 rounded">
               NVDA
             </div>
           </div>
         </div>
 
-        {/* Terminal footer status */}
-        <div className="px-4 py-3 border-t border-[#232E42] bg-[#0E131C] text-[10px] font-mono text-slate-500 flex items-center justify-between">
+        {/* Footer status */}
+        <div className="px-3.5 py-2.5 border-t border-[#1E293B] bg-[#0A0E17] text-[10px] font-mono text-slate-500 flex items-center justify-between">
           <span>Engine v0.1.0</span>
           <span className="text-emerald-400 flex items-center space-x-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>Online</span>
           </span>
         </div>

@@ -3,14 +3,12 @@ import { NavLink } from 'react-router-dom';
 import {
   TrendingUp,
   Activity,
-  Layers,
   ShieldCheck,
-  GitMerge,
   Cpu,
   PlayCircle,
   BarChart3,
   ArrowUpRight,
-  Database
+  Layers
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -29,33 +27,33 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & Quick Selector */}
-      <div className="bg-[#111722] border border-[#232E42] rounded-lg p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-xl">
+      {/* Top Asset & Terminal Status Banner */}
+      <div className="bg-[#0D111A] border border-[#1E293B] rounded-lg p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shadow-xl quant-glass">
         <div className="flex items-center space-x-3.5">
           <div className="w-10 h-10 rounded-lg bg-cyan-950/60 border border-cyan-800/60 flex items-center justify-center text-cyan-400 font-mono font-bold">
             QL
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h1 className="text-base font-bold font-mono text-white tracking-wide">
+              <h1 className="text-sm md:text-base font-bold font-mono text-white tracking-wide">
                 Terminal Dashboard Overview
               </h1>
-              <Badge variant="cyan" size="xs">Phase 1 Shell</Badge>
+              <Badge variant="cyan" size="xs">Phase 1 Active</Badge>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Multi-Asset Financial Intelligence & Quantitative Execution Terminal
+              Quantitative Multi-Asset Financial Intelligence & Backtesting System
             </p>
           </div>
         </div>
 
-        {/* Asset Quick Switcher */}
-        <div className="flex items-center space-x-2 bg-[#161F2E] p-1.5 rounded-lg border border-[#232E42]">
+        {/* Active Asset Selector */}
+        <div className="flex items-center space-x-2 bg-[#121824] p-1.5 rounded-lg border border-[#1E293B]">
           <span className="text-[11px] font-mono text-slate-400 px-2 uppercase">Active Asset:</span>
           <button
             onClick={() => setSelectedAsset('gold')}
             className={`px-3 py-1 text-xs font-mono rounded transition-colors ${
               selectedAsset === 'gold'
-                ? 'bg-amber-950/80 text-amber-300 border border-amber-700/60 font-semibold shadow-sm'
+                ? 'bg-amber-950/90 text-amber-300 border border-amber-700/60 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -65,7 +63,7 @@ export const DashboardPage: React.FC = () => {
             onClick={() => setSelectedAsset('bitcoin')}
             className={`px-3 py-1 text-xs font-mono rounded transition-colors ${
               selectedAsset === 'bitcoin'
-                ? 'bg-orange-950/80 text-orange-400 border border-orange-700/60 font-semibold shadow-sm'
+                ? 'bg-orange-950/90 text-orange-400 border border-orange-700/60 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -75,7 +73,7 @@ export const DashboardPage: React.FC = () => {
             onClick={() => setSelectedAsset('nvidia')}
             className={`px-3 py-1 text-xs font-mono rounded transition-colors ${
               selectedAsset === 'nvidia'
-                ? 'bg-lime-950/80 text-lime-400 border border-lime-700/60 font-semibold shadow-sm'
+                ? 'bg-lime-950/90 text-lime-400 border border-lime-700/60 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -84,67 +82,77 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 6 Structural Sections Required for Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* 1. Portfolio Overview */}
+      {/* 5 Core Dashboard Sections Required */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* 1. Market Overview */}
         <Card variant="default" className="flex flex-col justify-between">
           <div>
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <Layers className="w-4 h-4 text-cyan-400" />
-                <CardTitle>1. Portfolio Overview</CardTitle>
+                <CardTitle>1. Market Overview</CardTitle>
               </div>
-              <Badge variant="outline" size="xs">Structural</Badge>
+              <Badge variant="outline" size="xs">Multi-Asset</Badge>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-[#161F2E] rounded border border-[#232E42]">
-                <span className="text-xs text-slate-400 font-mono">Current Focus Asset</span>
-                <Badge variant={currentAsset.badge} size="sm">{currentAsset.ticker}</Badge>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 font-mono text-xs">
+                <div className="flex items-center justify-between p-2.5 bg-[#121824] rounded border border-[#1E293B]">
+                  <span className="text-amber-300">Gold (Commodity)</span>
+                  <span className="text-slate-500 text-[11px]">Awaiting Ingestion</span>
+                </div>
+                <div className="flex items-center justify-between p-2.5 bg-[#121824] rounded border border-[#1E293B]">
+                  <span className="text-orange-400">Bitcoin (Crypto)</span>
+                  <span className="text-slate-500 text-[11px]">Awaiting Ingestion</span>
+                </div>
+                <div className="flex items-center justify-between p-2.5 bg-[#121824] rounded border border-[#1E293B]">
+                  <span className="text-lime-400">NVIDIA (Equities)</span>
+                  <span className="text-slate-500 text-[11px]">Awaiting Ingestion</span>
+                </div>
               </div>
-              <div className="p-4 bg-[#161F2E]/50 rounded border border-[#232E42]/60 text-center space-y-2">
-                <Database className="w-6 h-6 text-slate-500 mx-auto" />
-                <p className="text-xs text-slate-400">
-                  Portfolio capital allocation, total simulated equity, and cash balance metrics will activate with Phase 8 Backtesting.
+              <div className="p-3 bg-[#121824]/50 rounded border border-[#1E293B]/60 text-center">
+                <p className="text-[11px] text-slate-400 font-mono">
+                  Normalized daily time-series will link in Phase 2 via Kaggle datasets.
                 </p>
               </div>
             </CardContent>
           </div>
           <CardFooter>
-            <span className="font-mono text-[11px]">Engine Status: Ready for Ingestion</span>
-            <NavLink to="/backtesting" className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center">
-              <span>Configure</span>
+            <span className="font-mono text-[11px] text-slate-500">Datasets: datasets/raw/*</span>
+            <NavLink to="/market-analysis" className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center">
+              <span>View Data</span>
               <ArrowUpRight className="w-3 h-3 ml-0.5" />
             </NavLink>
           </CardFooter>
         </Card>
 
-        {/* 2. Market Snapshot */}
+        {/* 2. Asset Snapshot */}
         <Card variant="default" className="flex flex-col justify-between">
           <div>
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <TrendingUp className="w-4 h-4 text-cyan-400" />
-                <CardTitle>2. Market Snapshot</CardTitle>
+                <CardTitle>2. Asset Snapshot</CardTitle>
               </div>
               <Badge variant={currentAsset.badge} size="xs">{selectedAsset.toUpperCase()}</Badge>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-xs text-slate-300 font-mono flex items-center justify-between">
-                <span className="text-slate-400">Asset Class:</span>
-                <span>{currentAsset.category}</span>
+                <span className="text-slate-400">Class:</span>
+                <span className="text-slate-200">{currentAsset.category}</span>
               </div>
-              <div className="p-4 bg-[#161F2E]/50 rounded border border-[#232E42]/60 text-center space-y-2">
-                <Activity className="w-6 h-6 text-slate-500 mx-auto" />
-                <p className="text-xs text-slate-400">
-                  Real historical OHLCV settlement candles, session volume, and daily percentage change will load from Kaggle dataset in Phase 2.
+              <div className="p-4 bg-[#121824]/50 rounded border border-[#1E293B]/60 text-center space-y-2">
+                <Activity className="w-6 h-6 text-slate-600 mx-auto" />
+                <div className="text-xs font-mono text-slate-300 font-medium">Awaiting Historical Data</div>
+                <p className="text-[11px] text-slate-400">
+                  Open, High, Low, Close, and Traded Volume candles will populate from verified Kaggle records.
                 </p>
               </div>
             </CardContent>
           </div>
           <CardFooter>
-            <span className="font-mono text-[11px]">Data Source: Kaggle Raw Files</span>
+            <span className="font-mono text-[11px] text-slate-500">Schema: ISO Date, OHLCV</span>
             <NavLink to="/market-analysis" className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center">
-              <span>Deep Dive</span>
+              <span>Price Action</span>
               <ArrowUpRight className="w-3 h-3 ml-0.5" />
             </NavLink>
           </CardFooter>
@@ -156,30 +164,30 @@ export const DashboardPage: React.FC = () => {
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <BarChart3 className="w-4 h-4 text-cyan-400" />
-                <CardTitle>3. Performance Metrics</CardTitle>
+                <CardTitle>3. Performance</CardTitle>
               </div>
               <Badge variant="outline" size="xs">Phase 4 Engine</Badge>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div className="p-2 bg-[#161F2E] rounded border border-[#232E42]">
-                  <span className="text-slate-500 text-[10px] block">CUMULATIVE RETURN</span>
-                  <span className="text-slate-400 text-xs">—</span>
+                <div className="p-2.5 bg-[#121824] rounded border border-[#1E293B]">
+                  <span className="text-slate-500 text-[10px] block uppercase">CUMULATIVE RETURN</span>
+                  <span className="text-slate-400 font-mono text-xs">—</span>
                 </div>
-                <div className="p-2 bg-[#161F2E] rounded border border-[#232E42]">
-                  <span className="text-slate-500 text-[10px] block">ANNUALIZED RETURN</span>
-                  <span className="text-slate-400 text-xs">—</span>
+                <div className="p-2.5 bg-[#121824] rounded border border-[#1E293B]">
+                  <span className="text-slate-500 text-[10px] block uppercase">ANNUALIZED RETURN</span>
+                  <span className="text-slate-400 font-mono text-xs">—</span>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 bg-[#161F2E]/50 p-3 rounded border border-[#232E42]/60">
-                Mathematical indicator engine (Pandas/NumPy) calculates exact compounding returns without look-ahead bias.
+              <p className="text-[11px] text-slate-400 bg-[#121824]/50 p-3 rounded border border-[#1E293B]/60 leading-relaxed font-mono">
+                FastAPI Python engine calculates daily arithmetic and compounded geometric returns.
               </p>
             </CardContent>
           </div>
           <CardFooter>
-            <span className="font-mono text-[11px]">Backend: Python SciPy</span>
+            <span className="font-mono text-[11px] text-slate-500">Engine: Python NumPy</span>
             <NavLink to="/market-analysis" className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center">
-              <span>View Indicators</span>
+              <span>Indicators</span>
               <ArrowUpRight className="w-3 h-3 ml-0.5" />
             </NavLink>
           </CardFooter>
@@ -195,97 +203,62 @@ export const DashboardPage: React.FC = () => {
               </div>
               <Badge variant="outline" size="xs">Phase 4 Engine</Badge>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2.5">
               <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div className="p-2 bg-[#161F2E] rounded border border-[#232E42]">
-                  <span className="text-slate-500 text-[10px] block">ANNUALIZED VOL</span>
-                  <span className="text-slate-400 text-xs">—</span>
+                <div className="p-2 bg-[#121824] rounded border border-[#1E293B]">
+                  <span className="text-slate-500 text-[10px] block uppercase">ANNUALIZED VOL</span>
+                  <span className="text-slate-400 font-mono text-xs">—</span>
                 </div>
-                <div className="p-2 bg-[#161F2E] rounded border border-[#232E42]">
-                  <span className="text-slate-500 text-[10px] block">MAX DRAWDOWN</span>
-                  <span className="text-slate-400 text-xs">—</span>
+                <div className="p-2 bg-[#121824] rounded border border-[#1E293B]">
+                  <span className="text-slate-500 text-[10px] block uppercase">MAX DRAWDOWN</span>
+                  <span className="text-slate-400 font-mono text-xs">—</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div className="p-2 bg-[#161F2E] rounded border border-[#232E42]">
-                  <span className="text-slate-500 text-[10px] block">SHARPE RATIO</span>
-                  <span className="text-slate-400 text-xs">—</span>
+                <div className="p-2 bg-[#121824] rounded border border-[#1E293B]">
+                  <span className="text-slate-500 text-[10px] block uppercase">SHARPE RATIO</span>
+                  <span className="text-slate-400 font-mono text-xs">—</span>
                 </div>
-                <div className="p-2 bg-[#161F2E] rounded border border-[#232E42]">
-                  <span className="text-slate-500 text-[10px] block">CALMAR RATIO</span>
-                  <span className="text-slate-400 text-xs">—</span>
+                <div className="p-2 bg-[#121824] rounded border border-[#1E293B]">
+                  <span className="text-slate-500 text-[10px] block uppercase">CALMAR RATIO</span>
+                  <span className="text-slate-400 font-mono text-xs">—</span>
                 </div>
               </div>
             </CardContent>
           </div>
           <CardFooter>
-            <span className="font-mono text-[11px]">Risk Free Rate: Rf = 0.0</span>
+            <span className="font-mono text-[11px] text-slate-500">Benchmark: Rf = 0.0</span>
             <NavLink to="/robustness" className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center">
-              <span>Risk Lab</span>
+              <span>Risk Diagnostics</span>
               <ArrowUpRight className="w-3 h-3 ml-0.5" />
             </NavLink>
           </CardFooter>
         </Card>
 
-        {/* 5. Asset Comparison */}
-        <Card variant="default" className="flex flex-col justify-between">
-          <div>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <GitMerge className="w-4 h-4 text-cyan-400" />
-                <CardTitle>5. Asset Comparison</CardTitle>
-              </div>
-              <Badge variant="outline" size="xs">Phase 6 Lab</Badge>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1.5 text-xs font-mono">
-                <div className="flex items-center justify-between p-2 bg-[#161F2E] rounded border border-[#232E42]">
-                  <span className="text-amber-300">Gold vs Bitcoin</span>
-                  <span className="text-slate-500">Pending Phase 6</span>
-                </div>
-                <div className="flex items-center justify-between p-2 bg-[#161F2E] rounded border border-[#232E42]">
-                  <span className="text-amber-300">Gold vs NVIDIA</span>
-                  <span className="text-slate-500">Pending Phase 6</span>
-                </div>
-                <div className="flex items-center justify-between p-2 bg-[#161F2E] rounded border border-[#232E42]">
-                  <span className="text-orange-400">Bitcoin vs NVIDIA</span>
-                  <span className="text-slate-500">Pending Phase 6</span>
-                </div>
-              </div>
-            </CardContent>
-          </div>
-          <CardFooter>
-            <span className="font-mono text-[11px]">Pearson Matrix Analysis</span>
-            <NavLink to="/correlation" className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center">
-              <span>Correlation Lab</span>
-              <ArrowUpRight className="w-3 h-3 ml-0.5" />
-            </NavLink>
-          </CardFooter>
-        </Card>
-
-        {/* 6. Recent Backtests */}
-        <Card variant="default" className="flex flex-col justify-between">
+        {/* 5. Recent Backtests */}
+        <Card variant="default" className="flex flex-col justify-between md:col-span-2 lg:col-span-2">
           <div>
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <PlayCircle className="w-4 h-4 text-cyan-400" />
-                <CardTitle>6. Recent Backtests</CardTitle>
+                <CardTitle>5. Recent Backtests & Strategy Hub</CardTitle>
               </div>
               <Badge variant="outline" size="xs">Phase 8 Backtest</Badge>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="p-4 bg-[#161F2E]/50 rounded border border-[#232E42]/60 text-center space-y-2">
-                <Cpu className="w-6 h-6 text-slate-500 mx-auto" />
-                <p className="text-xs text-slate-400">
-                  Execute SMA Crossover, EMA Trend, Momentum, or Mean Reversion simulations to populate historical backtest runs.
+              <div className="p-4 bg-[#121824]/50 rounded border border-[#1E293B]/60 text-center space-y-2">
+                <Cpu className="w-6 h-6 text-slate-600 mx-auto" />
+                <div className="text-xs font-mono text-slate-300 font-medium">No Active Backtest Simulations</div>
+                <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+                  Configure SMA Crossover, EMA Trend, Momentum, or Mean Reversion models with customizable transaction fees in Phase 8.
                 </p>
               </div>
             </CardContent>
           </div>
           <CardFooter>
-            <span className="font-mono text-[11px]">Strategy Simulation Hub</span>
+            <span className="font-mono text-[11px] text-slate-500">Simulation: Cash, Holdings, Slippage</span>
             <NavLink to="/strategy-builder" className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] flex items-center">
-              <span>Build Strategy</span>
+              <span>Strategy Builder</span>
               <ArrowUpRight className="w-3 h-3 ml-0.5" />
             </NavLink>
           </CardFooter>
