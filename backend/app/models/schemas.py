@@ -137,3 +137,35 @@ class DataSummaryResponse(BaseModel):
     latest_close: Optional[float] = None
     data_quality: str = Field(..., description="Overall dataset health ('pristine', 'good', 'acceptable')")
     data_status: str = "clean_verified"
+
+# ----------------------------------------------------------------------
+# Step 4: Quantitative Moving Average Indicators Schemas
+# ----------------------------------------------------------------------
+
+class IndicatorPoint(BaseModel):
+    """Quantitative indicator data point with SMA and EMA values."""
+    timestamp: str = Field(..., description="UTC ISO-8601 formatted timestamp")
+    close: float = Field(..., description="Closing price")
+    sma: Optional[float] = Field(None, description="Simple Moving Average (null if insufficient history)")
+    ema: Optional[float] = Field(None, description="Exponential Moving Average (null if insufficient history)")
+
+class IndicatorsSummary(BaseModel):
+    """Statistical summary of calculated moving average indicators."""
+    requested_sma_period: int = Field(..., description="Configured SMA period")
+    requested_ema_period: int = Field(..., description="Configured EMA period")
+    total_records: int = Field(..., description="Total chronological records analyzed")
+    valid_sma_count: int = Field(..., description="Count of non-null SMA observations")
+    valid_ema_count: int = Field(..., description="Count of non-null EMA observations")
+    latest_close: Optional[float] = Field(None, description="Most recent closing price in series")
+    latest_sma: Optional[float] = Field(None, description="Most recent calculated SMA value")
+    latest_ema: Optional[float] = Field(None, description="Most recent calculated EMA value")
+
+class IndicatorsResponse(BaseModel):
+    """Complete quantitative indicator response payload."""
+    asset: str
+    symbol: str
+    source: str
+    data_status: str = Field(default="calculated", description="Status of indicator computation")
+    summary: IndicatorsSummary
+    data: List[IndicatorPoint]
+

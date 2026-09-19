@@ -77,8 +77,10 @@ def create_app() -> FastAPI:
                 "historical": "/market/{asset}/historical",
                 "latest": "/market/{asset}/latest",
                 "clean_data": "/market/{asset}/data",
-                "clean_summary": "/market/{asset}/data/summary"
+                "clean_summary": "/market/{asset}/data/summary",
+                "indicators": "/market/{asset}/indicators"
             },
+
             "supported_assets": ["nvidia", "bitcoin", "gold"]
         }
 

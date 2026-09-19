@@ -109,3 +109,19 @@ class TwelveDataNetworkError(TwelveDataBaseException):
 class TwelveDataProviderError(TwelveDataBaseException):
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(message=message, status_code=502, error_type="PROVIDER_ERROR_MESSAGE", details=details)
+
+# Step 4: Quantitative Indicator Exceptions
+class InvalidIndicatorPeriodError(AlphaVantageBaseException):
+    """Raised when an invalid period is supplied for technical indicators (e.g. <= 0, float, non-digit)."""
+    def __init__(
+        self,
+        message: str = "Indicator periods must be positive integers greater than or equal to 1.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INVALID_PERIOD",
+            details=details
+        )
+

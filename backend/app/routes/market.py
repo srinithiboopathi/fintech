@@ -1,5 +1,6 @@
+import re
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Any
 from fastapi import APIRouter, Query, Path
 
 from app.config import settings
@@ -10,11 +11,37 @@ from app.models.schemas import (
     LatestMarketDataResponse,
     CleanMarketDataResponse,
     DataSummaryResponse,
+    IndicatorsResponse,
 )
 from app.services.market_data import market_data_service
 from app.services.cache_manager import cache_manager
+from app.utils.exceptions import InvalidIndicatorPeriodError
 
 router = APIRouter()
+
+def validate_indicator_period(val: Any) -> int:
+    """
+    Validates that a period parameter is a positive integer >= 1.
+    Rejects: 0, negative numbers, decimals, non-digit strings, empty values.
+    Raises InvalidIndicatorPeriodError (HTTP 400).
+    """
+    if val is None:
+        raise InvalidIndicatorPeriodError()
+
+    val_str = str(val).strip()
+    if not val_str:
+        raise InvalidIndicatorPeriodError()
+
+    # Reject floats, negative numbers, non-digit characters
+    if not re.fullmatch(r"\d+", val_str):
+        raise InvalidIndicatorPeriodError()
+
+    period = int(val_str)
+    if period < 1:
+        raise InvalidIndicatorPeriodError()
+
+    return period
+
 
 @router.get(
     "/health",
@@ -161,3 +188,44 @@ async def get_clean_market_data_summary(
         asset_identifier=asset,
         refresh=refresh or False
     )
+
+@router.get(
+    "/market/{asset}/indicators",
+    response_model=IndicatorsResponse,
+    summary="Get Technical Indicators (SMA & EMA)",
+    tags=["Quantitative Indicators"]
+)
+async def get_market_indicators(
+    asset: str = Path(..., description="Asset name or symbol (e.g. 'nvidia', 'bitcoin', 'gold')"),
+    sma_period: Optional[str] = Query(
+        "20",
+        description="Simple Moving Average period (positive integer >= 1, default 20)"
+    ),
+    ema_period: Optional[str] = Query(
+        "20",
+        description="Exponential Moving Average period (positive integer >= 1, default 20)"
+    ),
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Calculates Simple Moving Average (SMA) and Exponential Moving Average (EMA)
+    for NVIDIA, Bitcoin, or Gold strictly from Step 3 cleaned historical data.
+
+    Query Parameters:
+    - sma_period: Positive integer >= 1 (default: 20)
+    - ema_period: Positive integer >= 1 (default: 20)
+    - refresh: Optional boolean to force fresh fetch and calculation
+    """
+    valid_sma = validate_indicator_period(sma_period)
+    valid_ema = validate_indicator_period(ema_period)
+
+    return await market_data_service.get_indicators(
+        asset_identifier=asset,
+        sma_period=valid_sma,
+        ema_period=valid_ema,
+        refresh=refresh or False
+    )
+

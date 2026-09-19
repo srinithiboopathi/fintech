@@ -13,10 +13,13 @@ from app.models.schemas import (
     DataQualityReport,
     CleanMarketDataResponse,
     DataSummaryResponse,
+    IndicatorsResponse,
 )
 from app.services.cache_manager import cache_manager
 from app.services.twelve_data import twelve_data_service
 from app.services.data_cleaner import data_cleaning_service
+from app.services.indicators import indicator_service
+
 from app.utils.exceptions import (
     AlphaVantageAuthError,
     AlphaVantageRateLimitError,
@@ -713,4 +716,47 @@ class MarketDataService:
             report=clean_data.quality_report
         )
 
+    # ----------------------------------------------------------------------
+    # Step 4: Quantitative Moving Average Indicators (SMA & EMA)
+    # ----------------------------------------------------------------------
+    async def get_indicators(
+        self,
+        asset_identifier: str,
+        sma_period: int = 20,
+        ema_period: int = 20,
+        refresh: bool = False
+    ) -> IndicatorsResponse:
+        """
+        Calculates Simple Moving Average (SMA) and Exponential Moving Average (EMA)
+        for NVIDIA, Bitcoin, or Gold.
+        Operates strictly on the cleaned historical data produced by Step 3.
+        Reuses cached clean data to eliminate unnecessary external provider calls.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        # Fetch clean historical market data (cached from Step 3)
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+
+        # Compute SMA and EMA indicators via indicator service
+        indicator_points, summary = indicator_service.compute_indicators(
+            clean_points=clean_resp.data,
+            sma_period=sma_period,
+            ema_period=ema_period
+        )
+
+        return IndicatorsResponse(
+            asset=asset_name,
+            symbol=symbol,
+            source=clean_resp.source,
+            data_status="calculated",
+            summary=summary,
+            data=indicator_points
+        )
+
 market_data_service = MarketDataService()
+
