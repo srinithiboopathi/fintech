@@ -105,3 +105,46 @@ The standardized dataset format used across all backend calculation engines (`go
 | **Deviation Threshold** | `threshold` | `float` | Ratio (e.g. `0.02`) | Minimum deviation required to trigger mean reversion signals |
 | **Signal Counts Breakdown** | `summary` | `object` | `{buy: N, sell: N, hold: N, total: N}` | Aggregate signal distribution for requested series |
 
+---
+
+## 6. Backtesting & Portfolio Simulation Fields (Phase 7)
+
+| Field Name | API Key | Type | Unit / Format | Description |
+|---|---|---|---|---|
+| **Initial Capital** | `initial_capital` | `float` | USD ($) | Starting cash balance for the portfolio simulation |
+| **Position Size** | `position_size` | `float` | Ratio $(0.0, 1.0]$ | Fraction of available cash allocated when entering trades |
+| **Transaction Cost** | `transaction_cost` | `float` | Ratio (e.g. `0.001`) | Proportional fee applied on entry and exit notionals |
+| **Final Portfolio Value** | `final_portfolio_value` | `float` | USD ($) | Total marked-to-market equity at simulation termination |
+| **Cash Balance** | `cash` | `float` | USD ($) | Liquid uninvested capital held in portfolio |
+| **Position Quantity** | `position_quantity` | `float` | Units | Number of asset units/shares currently held |
+| **Position Value** | `position_value` | `float` | USD ($) | Current market value of open position ($\text{Quantity} \times P_{\text{close}}$) |
+| **Portfolio Value** | `portfolio_value` | `float` | USD ($) | Total marked wealth: $\text{Cash} + \text{Position Value}$ |
+| **Trade ID** | `trade_id` | `integer` | Sequential | Unique sequential identifier for completed trade |
+| **Entry Date** | `entry_date` | `string` | `YYYY-MM-DD` | Session date when position was opened |
+| **Exit Date** | `exit_date` | `string` | `YYYY-MM-DD` | Session date when position was closed |
+| **Entry Price** | `entry_price` | `float` | USD ($) | Fill price on trade entry ($P_{\text{open}}$ of entry session) |
+| **Exit Price** | `exit_price` | `float` | USD ($) | Fill price on trade exit ($P_{\text{open}}$ of exit session) |
+| **Entry Notional** | `entry_notional` | `float` | USD ($) | Gross dollar value allocated at entry ($\text{Quantity} \times P_{\text{entry}}$) |
+| **Exit Notional** | `exit_notional` | `float` | USD ($) | Gross dollar value realized at exit ($\text{Quantity} \times P_{\text{exit}}$) |
+| **Entry Cost** | `entry_cost` | `float` | USD ($) | Dollar transaction fee deducted upon trade entry |
+| **Exit Cost** | `exit_cost` | `float` | USD ($) | Dollar transaction fee deducted upon trade exit |
+| **Gross P&L** | `gross_pnl` | `float` | USD ($) | Dollar profit/loss before deducting transaction fees |
+| **Net P&L** | `net_pnl` | `float` | USD ($) | Net dollar profit/loss after subtracting entry and exit fees |
+| **Trade Return** | `return_pct` | `float` | Ratio | Percentage net return earned on invested capital |
+| **Holding Period** | `holding_period_days` | `integer` | Days | Total calendar days between entry date and exit date |
+| **Number of Trades** | `number_of_trades` | `integer` | Count | Total round-trip trades completed in backtest |
+| **Winning Trades** | `winning_trades` | `integer` | Count | Completed trades with positive net P&L |
+| **Losing Trades** | `losing_trades` | `integer` | Count | Completed trades with negative net P&L |
+| **Win Rate** | `win_rate` | `float` | Ratio $[0.0, 1.0]$ | Proportion of completed trades that were profitable |
+| **Gross Profit** | `gross_profit` | `float` | USD ($) | Sum of net gains generated across all winning trades |
+| **Gross Loss** | `gross_loss` | `float` | USD ($) | Sum of net losses generated across all losing trades |
+| **Net Profit** | `net_profit` | `float` | USD ($) | Cumulative net profit/loss across all completed trades |
+| **Average Trade Return** | `average_trade_return` | `float` | Ratio | Arithmetic mean percentage return across all trades |
+| **Unrealized P&L** | `unrealized_pnl` | `float` | USD ($) | Floating profit/loss on open position held at backtest end |
+| **Unrealized Return** | `unrealized_return_pct` | `float` | Ratio | Floating percentage return on open position |
+| **Benchmark Final Value** | `final_value` | `float` | USD ($) | Final equity of 100% Buy-and-Hold passive benchmark |
+| **Return Difference** | `return_difference` | `float` | Ratio | Strategy total return minus Benchmark total return |
+| **Sharpe Difference** | `sharpe_difference` | `float` | Ratio | Strategy Sharpe ratio minus Benchmark Sharpe ratio |
+| **MDD Difference** | `mdd_difference` | `float` | Ratio | Strategy Maximum Drawdown minus Benchmark Maximum Drawdown |
+
+

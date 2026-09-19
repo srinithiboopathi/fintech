@@ -2,15 +2,16 @@
 
 ## Current Status Overview
 
-- **Current Phase**: Phase 6 — Strategy Engine
+- **Current Phase**: Phase 7 — Backtesting Engine & Realistic Portfolio Simulation
 - **Status**: Completed
 - **Current Git Branch**: `feature/quantlab-platform`
-- **Completed Phases**: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6
-- **Next Phase**: Phase 7 — Backtesting Engine
+- **Completed Phases**: Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, Phase 5, Phase 6, Phase 7
+- **Next Phase**: Phase 8 — Portfolio Simulation & Transaction Cost Deep-Dive / Phase 9 Strategy Dashboard UI
 
 ---
 
 ## Phase Log
+
 
 
 ### Phase 0: Project Architecture and Repository Setup
@@ -223,6 +224,46 @@
 
 ---
 
+### Phase 7: Backtesting Engine & Realistic Portfolio Simulation
+- **Goal**: Implement deterministic, institutional-grade portfolio backtesting that translates analytical strategy signals (`BUY`, `HOLD`, `SELL`) into realistic executions (next-day open fills, fractional sizing, transaction fees, cash accounting, daily mark-to-market equity curves, trade logs, and comparative Buy-and-Hold benchmark analytics).
+- **Status**: Completed
+
+#### Modules & Files Created
+- `backend/app/backtesting/__init__.py`
+- `backend/app/backtesting/enums.py` (`PositionStatus`, `OrderType`, `TradeStatus`)
+- `backend/app/backtesting/models.py` (`Position`, `TradeRecordInternal`, `DailyPortfolioState`)
+- `backend/app/backtesting/validation.py` (Capital, sizing, fee, and strategy parameter validators)
+- `backend/app/backtesting/execution.py` (Order execution at open price, fee deduction, P&L attribution)
+- `backend/app/backtesting/portfolio.py` (`PortfolioTracker` cash ledger and daily mark-to-market state machine)
+- `backend/app/backtesting/performance.py` (CAGR, volatility, Sharpe ratio, MDD, win rate, and profit metrics)
+- `backend/app/backtesting/benchmark.py` (Buy-and-Hold benchmark simulation and comparative differentials)
+- `backend/app/backtesting/engine.py` (`BacktestEngine` pipeline orchestrator)
+- `backend/app/schemas/backtesting.py` (Pydantic v2 request/response models)
+- `backend/app/services/backtesting_service.py` (`BacktestService` coordinating engine and strategy catalog)
+- `backend/app/api/backtesting.py` (FastAPI router mounted under `/api/v1/backtesting/`)
+- `backend/tests/test_backtesting_execution.py` (Unit tests for fill timing, sizing, fees, no duplicate buys)
+- `backend/tests/test_backtesting_portfolio.py` (Unit tests for equity curves, daily returns, drawdowns)
+- `backend/tests/test_backtesting_benchmark.py` (Unit tests for Buy-and-Hold benchmark math and differentials)
+- `backend/tests/test_backtesting_engine.py` (End-to-end multi-asset tests and look-ahead bias perturbation test)
+- `backend/tests/test_backtesting_api.py` (Integration tests for POST /run and GET /strategies endpoints)
+- `docs/backtesting-methodology.md` (Complete methodology, execution lifecycle, formula definitions)
+
+#### Endpoints Implemented
+1. `POST /api/v1/backtesting/run` — Executes full deterministic portfolio backtest simulation.
+2. `GET /api/v1/backtesting/strategies` — Returns metadata catalog of available strategies and parameter defaults.
+
+#### Verification & Test Results
+- **Full Pytest Suite**: 139/139 tests passed (100% pass rate).
+- **Look-Ahead Bias Test**: Passed (future price perturbations verified to cause zero change in past trades, executions, and equity curve values).
+- **Frontend Build**: `npm run build` completed successfully (0 errors, 2.09s).
+- **Data Integrity**: Verified read-only access on `datasets/raw/` and `datasets/processed/`.
+- **Git Branch Check**: Preserved on `feature/quantlab-platform`, zero automated commits/pushes.
+
+#### Known Issues
+- None.
+
+---
+
 ## Roadmap
 
 - [x] **Phase 0**: Project architecture and repository setup (Completed)
@@ -232,7 +273,7 @@
 - [x] **Phase 4**: Quantitative indicator engine (Completed)
 - [x] **Phase 5**: Asset Comparison & Correlation Engine (Completed)
 - [x] **Phase 6**: Strategy Engine (Completed)
-- [ ] **Phase 7**: Backtesting engine
+- [x] **Phase 7**: Backtesting Engine (Completed)
 - [ ] **Phase 8**: Portfolio simulation & transaction costs
 - [ ] **Phase 9**: Trade history + performance metrics
 - [ ] **Phase 10**: Buy-and-Hold benchmark
@@ -244,4 +285,5 @@
 - [ ] **Phase 16**: Testing + error handling
 - [ ] **Phase 17**: Complete integration
 - [ ] **Phase 18**: Production polish + deployment
+
 

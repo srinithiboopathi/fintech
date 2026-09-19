@@ -38,6 +38,20 @@ from backend.app.schemas.strategy import (
     SignalCounts,
     StrategyResponse,
 )
+from backend.app.schemas.backtesting import (
+    BacktestRequest,
+    BacktestMeta,
+    StrategyMeta,
+    BacktestPerformance,
+    BenchmarkPerformance,
+    BacktestComparison,
+    EquityCurvePoint,
+    TradeRecord,
+    OpenPosition,
+    BacktestResponse,
+    StrategyInfo,
+    StrategyInfoListResponse,
+)
 
 __all__ = [
     "MarketDataPoint",
@@ -69,5 +83,18 @@ __all__ = [
     "StrategySignalPoint",
     "SignalCounts",
     "StrategyResponse",
+    "BacktestRequest",
+    "BacktestMeta",
+    "StrategyMeta",
+    "BacktestPerformance",
+    "BenchmarkPerformance",
+    "BacktestComparison",
+    "EquityCurvePoint",
+    "TradeRecord",
+    "OpenPosition",
+    "BacktestResponse",
+    "StrategyInfo",
+    "StrategyInfoListResponse",
 ]
+
 

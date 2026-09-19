@@ -685,12 +685,191 @@ Unified dispatch endpoint supporting all quantitative trading strategies.
 
 ---
 
-## 6. Upcoming Endpoints (Scheduled by Phase)
+---
+
+## 6. Backtesting Engine Endpoints (Phase 7)
+
+The Backtesting API provides institutional-grade portfolio simulation, executing strategy signals on the next available trading session open with fractional position sizing, transaction costs, cash accounting, daily mark-to-market equity curves, trade logs, and comparative Buy-and-Hold benchmark analytics.
+
+---
+
+### `POST /api/v1/backtesting/run`
+Executes an end-to-end portfolio backtest simulation.
+
+**Request Body (`application/json`)**:
+```json
+{
+  "asset": "Gold",
+  "strategy": "sma_crossover",
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31",
+  "initial_capital": 100000.0,
+  "position_size": 1.0,
+  "transaction_cost": 0.001,
+  "risk_free_rate": 0.0,
+  "strategy_parameters": {
+    "fast_period": 20,
+    "slow_period": 50
+  }
+}
+```
+
+**Field Descriptions**:
+- `asset` (string, required): `Gold`, `Bitcoin`, or `NVIDIA` (case-insensitive).
+- `strategy` (string, required): `sma_crossover`, `ema_trend`, `momentum`, or `mean_reversion`.
+- `start_date` (string `YYYY-MM-DD`, optional): Backtest start date.
+- `end_date` (string `YYYY-MM-DD`, optional): Backtest end date.
+- `initial_capital` (float, default: `100000.0`, constraint: `gt=0`): Starting cash balance.
+- `position_size` (float, default: `1.0`, constraint: `0.0 < size <= 1.0`): Capital allocation fraction per trade.
+- `transaction_cost` (float, default: `0.001`, constraint: `ge=0.0`): Proportional fee per trade ($0.001 = 0.1\%$).
+- `risk_free_rate` (float, default: `0.0`, constraint: `ge=0.0`): Annualized risk-free rate for Sharpe ratio.
+- `strategy_parameters` (object, optional): Strategy-specific hyperparameters.
+
+**Response `200 OK`**:
+```json
+{
+  "backtest": {
+    "asset": "Gold",
+    "start_date": "2024-01-02",
+    "end_date": "2024-12-31",
+    "records": 252,
+    "initial_capital": 100000.0,
+    "position_size": 1.0,
+    "transaction_cost": 0.001,
+    "risk_free_rate": 0.0
+  },
+  "strategy": {
+    "name": "sma_crossover",
+    "parameters": {
+      "fast_period": 20,
+      "slow_period": 50
+    }
+  },
+  "performance": {
+    "initial_capital": 100000.0,
+    "final_portfolio_value": 118420.50,
+    "total_return": 0.1842,
+    "annualized_return": 0.1842,
+    "annualized_volatility": 0.1420,
+    "sharpe_ratio": 1.297,
+    "maximum_drawdown": -0.0654,
+    "number_of_trades": 4,
+    "winning_trades": 3,
+    "losing_trades": 1,
+    "win_rate": 0.75,
+    "gross_profit": 21000.0,
+    "gross_loss": 2579.50,
+    "net_profit": 18420.50,
+    "average_trade_return": 0.0460
+  },
+  "benchmark": {
+    "initial_capital": 100000.0,
+    "final_value": 112350.00,
+    "total_return": 0.1235,
+    "annualized_return": 0.1235,
+    "annualized_volatility": 0.1780,
+    "sharpe_ratio": 0.6938,
+    "maximum_drawdown": -0.1240
+  },
+  "comparison": {
+    "return_difference": 0.0607,
+    "annualized_return_difference": 0.0607,
+    "volatility_difference": -0.0360,
+    "sharpe_difference": 0.6032,
+    "mdd_difference": 0.0586
+  },
+  "equity_curve": [
+    {
+      "date": "2024-01-02",
+      "cash": 100000.0,
+      "position_quantity": 0.0,
+      "position_value": 0.0,
+      "portfolio_value": 100000.0,
+      "daily_return": 0.0,
+      "cumulative_return": 0.0,
+      "drawdown": 0.0
+    }
+  ],
+  "trades": [
+    {
+      "trade_id": 1,
+      "asset": "Gold",
+      "strategy": "sma_crossover",
+      "entry_date": "2024-02-01",
+      "exit_date": "2024-04-15",
+      "entry_price": 2050.50,
+      "exit_price": 2380.00,
+      "quantity": 48.718,
+      "entry_notional": 99900.10,
+      "exit_notional": 115948.84,
+      "entry_cost": 99.90,
+      "exit_cost": 115.95,
+      "gross_pnl": 16048.74,
+      "net_pnl": 15832.89,
+      "return_pct": 0.1583,
+      "holding_period_days": 74
+    }
+  ],
+  "open_position": null
+}
+```
+
+---
+
+### `GET /api/v1/backtesting/strategies`
+Returns the metadata catalog of all strategies supported by the Backtesting Engine with default parameters.
+
+**Response `200 OK`**:
+```json
+{
+  "strategies": [
+    {
+      "name": "sma_crossover",
+      "display_name": "SMA Crossover",
+      "description": "Captures trend direction by tracking when a Fast SMA crosses above or below a Slow SMA baseline.",
+      "default_parameters": {
+        "fast_period": 20,
+        "slow_period": 50
+      }
+    },
+    {
+      "name": "ema_trend",
+      "display_name": "EMA Trend",
+      "description": "Generates trend-following signals via Short EMA and Long EMA cross events.",
+      "default_parameters": {
+        "short_period": 20,
+        "long_period": 50
+      }
+    },
+    {
+      "name": "momentum",
+      "display_name": "Momentum",
+      "description": "Evaluates rate-of-change momentum and trades zero-line transition crossings.",
+      "default_parameters": {
+        "lookback": 20
+      }
+    },
+    {
+      "name": "mean_reversion",
+      "display_name": "Mean Reversion",
+      "description": "Identifies overextended price deviations from a central rolling moving average baseline.",
+      "default_parameters": {
+        "window": 20,
+        "threshold": 0.02
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 7. Upcoming Endpoints (Scheduled by Phase)
 
 | Endpoint | Method | Phase | Description |
 |---|---|---|---|
-| `/api/v1/backtest/run` | POST | Phase 7/8 | Run portfolio backtest with transaction costs |
 | `/api/v1/robustness/monte-carlo` | POST | Phase 11 | Parameter sensitivity & Monte Carlo simulations |
 | `/api/v1/regime/detect` | POST | Phase 12 | Classify market volatility and trend regimes |
 | `/api/v1/report/generate` | POST | Phase 13 | Generate downloadable research teardown report |
+
 
