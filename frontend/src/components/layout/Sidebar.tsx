@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   TrendingUp,
   GitMerge,
+  PieChart,
   Cpu,
   PlayCircle,
   History,
@@ -28,14 +29,15 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: 'Overview', path: '/dashboard', icon: LayoutDashboard, phase: 1 },
-  { name: 'Market Analysis', path: '/market-analysis', icon: TrendingUp, phase: 5 },
-  { name: 'Correlation Lab', path: '/correlation', icon: GitMerge, phase: 6 },
-  { name: 'Strategy Builder', path: '/strategy-builder', icon: Cpu, phase: 7 },
-  { name: 'Backtesting', path: '/backtesting', icon: PlayCircle, phase: 8 },
-  { name: 'Trade History', path: '/trade-history', icon: History, phase: 9 },
-  { name: 'Robustness Lab', path: '/robustness', icon: ShieldAlert, phase: 11 },
-  { name: 'Market Regimes', path: '/market-regimes', icon: Gauge, phase: 12 },
-  { name: 'Research Report', path: '/research-report', icon: FileText, phase: 13 },
+  { name: 'Market Analysis', path: '/market-analysis', icon: TrendingUp, phase: 3 },
+  { name: 'Correlation Lab', path: '/correlation', icon: GitMerge, phase: 5 },
+  { name: 'Portfolio Analytics', path: '/portfolio', icon: PieChart, phase: 11 },
+  { name: 'Strategy Builder', path: '/strategy-builder', icon: Cpu, phase: 6 },
+  { name: 'Backtesting', path: '/backtesting', icon: PlayCircle, phase: 7 },
+  { name: 'Trade History', path: '/trade-history', icon: History, phase: 7 },
+  { name: 'Robustness Lab', path: '/robustness', icon: ShieldAlert, phase: 8 },
+  { name: 'Market Regimes', path: '/market-regimes', icon: Gauge, phase: 8 },
+  { name: 'Research Report', path: '/research-report', icon: FileText, phase: 9 },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {

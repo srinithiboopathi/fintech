@@ -15,6 +15,7 @@ from backend.app.api.strategies import router as strategies_router
 from backend.app.api.backtesting import router as backtesting_router
 from backend.app.api.robustness import router as robustness_router
 from backend.app.api.regimes import router as regimes_router
+from backend.app.api.portfolio import router as portfolio_router
 
 # Initialize database tables
 init_db()
@@ -61,6 +62,8 @@ app.include_router(strategies_router, prefix=settings.API_V1_PREFIX)
 app.include_router(backtesting_router, prefix=settings.API_V1_PREFIX)
 app.include_router(robustness_router, prefix=settings.API_V1_PREFIX)
 app.include_router(regimes_router, prefix=settings.API_V1_PREFIX)
+app.include_router(portfolio_router, prefix=settings.API_V1_PREFIX)
+
 
 
 

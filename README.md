@@ -11,6 +11,14 @@ QUANTLAB is a full-stack institutional-grade quantitative finance platform desig
 - **Multi-Asset Intelligence**: Comprehensive analytics across Gold, Bitcoin, and NVIDIA.
 - **Quantitative Engine**: Moving averages (SMA/EMA), daily & cumulative returns, historical & annualized volatility, Sharpe ratio, max drawdown, and rolling metrics.
 - **Cross-Asset Correlation Lab**: Multi-asset covariance, correlation matrices, and rolling correlation windows.
+- **Advanced Portfolio Analytics (Phase 11)**:
+  - Custom multi-asset portfolio construction across Gold, Bitcoin, and NVIDIA
+  - Calendar date synchronization and daily return aggregation ($r_{p,t} = \sum w_i r_{i,t}$)
+  - Compounded equity curve growth ($V_t = V_0(1+C_{p,t})$)
+  - Institutional performance metrics (CAGR, Annualized Volatility, Sharpe, Max Drawdown)
+  - Standalone and weighted performance contribution decomposition ($w_i \times R_i$)
+  - Euler risk decomposition via annualized covariance matrix ($\mathbf{\Sigma} = 252 \times \mathbf{\Sigma}_{\text{daily}}$, Marginal & Component Risk Contributions $\text{CCR}_i$, Percentage Risk $\% \text{CR}_i$)
+  - Normalized Base-100 comparative performance curves
 - **Strategy & Backtesting Engine**:
   - SMA Crossover
   - EMA Trend

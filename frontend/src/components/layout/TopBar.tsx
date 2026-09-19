@@ -13,6 +13,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard': 'Portfolio Overview & Multi-Asset Intelligence',
   '/market-analysis': 'Historical Price & Quantitative Indicator Analysis',
   '/correlation': 'Cross-Asset Correlation & Covariance Matrix Lab',
+  '/portfolio': 'Multi-Asset Portfolio Analytics & Risk Decomposition',
   '/strategy-builder': 'Quantitative Strategy Builder & Signal Generation',
   '/backtesting': 'Portfolio Backtest Engine & Transaction Cost Simulation',
   '/trade-history': 'Execution Trade Log & Historical Orders',

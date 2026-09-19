@@ -77,6 +77,15 @@ from backend.app.schemas.auth import (
     TokenResponse,
     MessageResponse,
 )
+from backend.app.schemas.portfolio import (
+    PortfolioAnalysisRequest,
+    PortfolioAnalysisResponse,
+    PortfolioSummaryMetrics,
+    PortfolioDataPoint,
+    PortfolioComparisonPoint,
+    AssetPerformanceContribution,
+    AssetRiskContribution,
+)
 
 __all__ = [
     "MarketDataPoint",
@@ -138,6 +147,13 @@ __all__ = [
     "UserResponse",
     "TokenResponse",
     "MessageResponse",
+    "PortfolioAnalysisRequest",
+    "PortfolioAnalysisResponse",
+    "PortfolioSummaryMetrics",
+    "PortfolioDataPoint",
+    "PortfolioComparisonPoint",
+    "AssetPerformanceContribution",
+    "AssetRiskContribution",
 ]
 
 

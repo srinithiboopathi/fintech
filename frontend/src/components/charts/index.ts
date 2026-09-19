@@ -8,3 +8,6 @@ export * from './StrategySignalChart';
 export * from './EquityCurveChart';
 export * from './RobustnessHeatmap';
 export * from './RegimeTimelineChart';
+export * from './PortfolioEquityChart';
+export * from './PortfolioComparisonChart';
+export * from './PortfolioDrawdownChart';

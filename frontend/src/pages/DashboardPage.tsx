@@ -6,6 +6,7 @@ import {
   ArrowRight,
   ShieldAlert,
   PlayCircle,
+  PieChart,
   FileText
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
@@ -491,6 +492,17 @@ export const DashboardPage: React.FC = () => {
             <CardTitle>Research Launchpad</CardTitle>
           </CardHeader>
           <CardContent className="p-3 space-y-2">
+            <NavLink
+              to="/portfolio"
+              className="flex items-center justify-between p-2.5 rounded bg-[#121824] hover:bg-[#161F2E] border border-[#1E293B] text-xs font-mono text-slate-300 transition-colors group"
+            >
+              <div className="flex items-center space-x-2.5">
+                <PieChart className="w-4 h-4 text-amber-400 group-hover:text-amber-300" />
+                <span>Portfolio Analytics</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400" />
+            </NavLink>
+
             <NavLink
               to="/strategy-builder"
               className="flex items-center justify-between p-2.5 rounded bg-[#121824] hover:bg-[#161F2E] border border-[#1E293B] text-xs font-mono text-slate-300 transition-colors group"

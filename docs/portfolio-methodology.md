@@ -1,0 +1,131 @@
+# QUANTLAB Multi-Asset Portfolio Analytics & Risk Decomposition Methodology
+
+This document outlines the mathematical framework, date synchronization algorithms, performance metrics, and Euler risk decomposition models powering the **QUANTLAB Advanced Portfolio Analytics Engine (Phase 11)**.
+
+---
+
+## 1. Portfolio Return Formulation
+
+In institutional quantitative finance, multi-asset portfolio returns are calculated from **daily arithmetic percentage returns** of the constituent assets, **never** from weighted nominal price levels:
+
+$$r_{p,t} = \sum_{i=1}^N w_i \cdot r_{i,t}$$
+
+Where:
+- $w_i \in [0.0, 1.0]$ is the fixed asset allocation weight for asset $i$, satisfying $\sum_{i=1}^N w_i = 1.0$ ($\pm 10^{-4}$ tolerance).
+- $r_{i,t} = \frac{P_{i,t} - P_{i,t-1}}{P_{i,t-1}}$ is the daily percentage return of asset $i$ on date $t$.
+- $r_{p,t}$ is the portfolio aggregate return for session $t$.
+
+### Cumulative Portfolio Growth and Equity Curve
+Using the daily return series $r_{p,t}$, cumulative compounded portfolio growth $C_{p,t}$ and dollar equity curve $V_t$ from initial investment capital $V_0$ are defined as:
+
+$$C_{p,t} = \prod_{k=1}^t (1 + r_{p,k}) - 1$$
+
+$$V_t = V_0 \times (1 + C_{p,t}) = V_0 \times \prod_{k=1}^t (1 + r_{p,k})$$
+
+---
+
+## 2. Multi-Market Date Synchronization
+
+### Trading Calendar Alignment
+- **Gold & NVIDIA**: Trade on traditional CME/NYSE trading days (~252 sessions/year).
+- **Bitcoin**: Trades continuously 24/7 (365 days/year).
+- **Bitcoin Coverage Boundary**: Historical data for Bitcoin is available for calendar year 2017 (`2017-01-01` to `2017-12-31`).
+
+### Alignment Rules
+1. **Independent Return Computation**: Returns are computed per asset on its own native sorted chronological price series before alignment.
+2. **Inner Calendar Join**: When multiple assets are selected, the portfolio engine identifies the exact intersection of dates where all selected assets actively traded ($N_{\text{obs}}$).
+3. **No Fabricated History / No Forward-Filling**: Bitcoin is never forward-filled or backfilled with synthetic flat prices into date windows outside 2017. If Bitcoin is selected with dates outside 2017, the engine validates the overlap and returns a clear descriptive 400 error.
+4. **Audit Transparency**: Every analysis response reports the starting date, ending date, and exact observation count ($N_{\text{obs}}$).
+
+---
+
+## 3. Summary Performance Metrics
+
+All portfolio metrics follow QuantLab's institutional standards:
+
+1. **Total Return**:
+   $$R_{\text{total}} = C_{p, T} = \frac{V_T - V_0}{V_0}$$
+
+2. **Compound Annual Growth Rate (CAGR / Annualized Return)**:
+   $$\text{CAGR} = (1 + R_{\text{total}})^{\frac{252}{N_{\text{obs}}}} - 1$$
+
+3. **Annualized Volatility**:
+   $$\sigma_{\text{ann}} = \text{std}(r_{p,t}, \text{ddof}=1) \times \sqrt{252}$$
+
+4. **Sharpe Ratio**:
+   $$\text{Sharpe} = \frac{\text{CAGR} - r_f}{\sigma_{\text{ann}}}$$
+   *(where $r_f$ is the user-configured annualized risk-free rate, default 2.0%)*
+
+5. **Maximum Drawdown (MDD) & Drawdown Series**:
+   $$D_t = \frac{V_t - \max_{k \le t} V_k}{\max_{k \le t} V_k}$$
+   $$\text{MDD} = \min_{t} D_t \le 0$$
+
+---
+
+## 4. Asset Performance Contribution
+
+To understand how each constituent drives total portfolio growth, performance is decomposed into:
+
+- **Standalone Total Return ($R_i$)**:
+  $$R_i = \prod_{t=1}^T (1 + r_{i,t}) - 1$$
+
+- **Weighted Return Contribution ($\text{WRC}_i$)**:
+  $$\text{WRC}_i = w_i \times R_i$$
+
+- **Percentage Return Contribution ($\%\text{RC}_i$)**:
+  $$\%\text{RC}_i = \frac{\text{WRC}_i}{\sum_{j=1}^N \text{WRC}_j}$$
+
+---
+
+## 5. Euler Risk Decomposition & Covariance Methodology
+
+To determine the true risk origin of the portfolio (accounting for asset correlation and covariance), QuantLab implements **Euler's Homogeneous Function Theorem** for portfolio volatility.
+
+### Annualized Covariance Matrix
+Given the $N \times N$ sample daily return covariance matrix $\mathbf{\Sigma}_{\text{daily}}$ over aligned dates:
+
+$$\mathbf{\Sigma} = 252 \times \mathbf{\Sigma}_{\text{daily}}$$
+
+Total portfolio annualized volatility is:
+
+$$\sigma_p = \sqrt{\mathbf{w}^T \mathbf{\Sigma} \mathbf{w}}$$
+
+### Marginal Contribution to Risk (MCR)
+The partial derivative of portfolio volatility with respect to the weight of asset $i$:
+
+$$\text{MCR}_i = \frac{\partial \sigma_p}{\partial w_i} = \frac{(\mathbf{\Sigma} \mathbf{w})_i}{\sigma_p}$$
+
+### Component Contribution to Risk (CCR)
+The absolute volatility (in annualized percentage points) attributable to asset $i$:
+
+$$\text{CCR}_i = w_i \times \text{MCR}_i = w_i \times \frac{(\mathbf{\Sigma} \mathbf{w})_i}{\sigma_p}$$
+
+### Euler Identity Verification
+By Euler's theorem on degree-1 homogeneous functions, the sum of Component Contributions to Risk exactly equals total portfolio volatility:
+
+$$\sum_{i=1}^N \text{CCR}_i = \sigma_p$$
+
+### Percentage Contribution to Risk (%CR)
+The fraction of total portfolio volatility generated by asset $i$:
+
+$$\%\text{CR}_i = \frac{\text{CCR}_i}{\sigma_p} = \frac{w_i (\mathbf{\Sigma} \mathbf{w})_i}{\sigma_p^2}$$
+
+$$\sum_{i=1}^N \%\text{CR}_i = 1.0 \quad (100\%)$$
+
+---
+
+## 6. Normalized Base-100 Comparison
+
+For visual comparison between the portfolio and its constituent assets from a common starting date $t_0$:
+
+$$\text{Base100}_{p,t} = 100.0 \times (1 + C_{p,t})$$
+$$\text{Base100}_{i,t} = 100.0 \times \prod_{k=1}^t (1 + r_{i,k})$$
+
+This allows clean tracking of relative compounding without bias from differing raw price scales (e.g. Gold at $1,300 vs Bitcoin at $10,000 vs NVDA at $20).
+
+---
+
+## 7. Phase 11 Scope & Non-Optimization Guarantee
+
+- **Descriptive Analytics Only**: Phase 11 strictly performs multi-asset portfolio simulation, historical performance accounting, and Euler covariance decomposition.
+- **No Optimization / No Frontier**: Phase 11 does not solve for Markowitz mean-variance frontiers, minimum variance weights, or maximum Sharpe portfolios. Those capabilities are explicitly reserved for **Phase 12 (Portfolio Optimization)**.

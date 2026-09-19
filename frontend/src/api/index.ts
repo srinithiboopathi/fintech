@@ -5,4 +5,5 @@ export * from "./strategyApi";
 export * from "./backtestingApi";
 export * from "./robustnessApi";
 export * from "./regimeApi";
+export * from "./portfolioApi";
 export * from "./authApi";

@@ -530,3 +530,69 @@ export interface MessageResponse {
   message: string;
 }
 
+// ==========================================
+// 9. Portfolio Analytics Types (Phase 11)
+// ==========================================
+
+export interface PortfolioAnalysisRequest {
+  weights: Record<string, number>;
+  start_date?: string | null;
+  end_date?: string | null;
+  initial_capital?: number;
+  risk_free_rate?: number;
+}
+
+export interface AssetPerformanceContribution {
+  asset: string;
+  weight: number;
+  total_return: number;
+  weighted_contribution: number;
+  contribution_percentage: number | null;
+}
+
+export interface AssetRiskContribution {
+  asset: string;
+  weight: number;
+  annualized_volatility: number;
+  marginal_risk_contribution: number;
+  component_risk_contribution: number;
+  percentage_risk_contribution: number;
+}
+
+export interface PortfolioSummaryMetrics {
+  initial_capital: number;
+  final_value: number;
+  total_return: number;
+  annualized_return: number;
+  annualized_volatility: number;
+  sharpe_ratio: number;
+  maximum_drawdown: number;
+  observations: number;
+  start_date: string;
+  end_date: string;
+}
+
+export interface PortfolioDataPoint {
+  date: string;
+  portfolio_return: number;
+  cumulative_return: number;
+  portfolio_value: number;
+  drawdown: number;
+}
+
+export interface PortfolioComparisonPoint {
+  date: string;
+  portfolio: number;
+  assets: Record<string, number>;
+}
+
+export interface PortfolioAnalysisResponse {
+  weights: Record<string, number>;
+  summary: PortfolioSummaryMetrics;
+  performance_contributions: AssetPerformanceContribution[];
+  risk_contributions: AssetRiskContribution[];
+  covariance_matrix: Record<string, Record<string, number>>;
+  data: PortfolioDataPoint[];
+  comparison: PortfolioComparisonPoint[];
+}
+
