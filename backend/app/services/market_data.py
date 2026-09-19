@@ -14,11 +14,14 @@ from app.models.schemas import (
     CleanMarketDataResponse,
     DataSummaryResponse,
     IndicatorsResponse,
+    RiskMetricsResponse,
 )
 from app.services.cache_manager import cache_manager
 from app.services.twelve_data import twelve_data_service
 from app.services.data_cleaner import data_cleaning_service
 from app.services.indicators import indicator_service
+from app.services.risk_metrics import risk_metrics_service
+
 
 from app.utils.exceptions import (
     AlphaVantageAuthError,
@@ -758,5 +761,46 @@ class MarketDataService:
             data=indicator_points
         )
 
+    # ----------------------------------------------------------------------
+    # Step 5: Quantitative Returns & Volatility Analysis (Risk Metrics)
+    # ----------------------------------------------------------------------
+    async def get_risk_metrics(
+        self,
+        asset_identifier: str,
+        volatility_period: int = 20,
+        refresh: bool = False
+    ) -> RiskMetricsResponse:
+        """
+        Calculates percentage daily returns and rolling sample volatility (ddof=1)
+        for NVIDIA, Bitcoin, or Gold.
+        Operates strictly on the cleaned historical data produced by Step 3.
+        Reuses cached clean data to eliminate unnecessary external provider calls.
+        """
+        config = resolve_asset_config(asset_identifier)
+        if not config:
+            raise UnsupportedAssetError(asset_identifier, list(SUPPORTED_ASSETS.keys()))
+
+        symbol = config["symbol"]
+        asset_name = config["name"]
+
+        # Fetch clean historical market data (cached from Step 3)
+        clean_resp = await self.get_clean_data(asset_identifier=asset_identifier, refresh=refresh)
+
+        # Compute returns and rolling volatility via risk metrics service
+        metric_points, summary = risk_metrics_service.compute_risk_metrics(
+            clean_points=clean_resp.data,
+            volatility_period=volatility_period
+        )
+
+        return RiskMetricsResponse(
+            asset=asset_name,
+            symbol=symbol,
+            source=clean_resp.source,
+            data_status="calculated",
+            summary=summary,
+            data=metric_points
+        )
+
 market_data_service = MarketDataService()
+
 

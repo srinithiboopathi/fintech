@@ -125,3 +125,19 @@ class InvalidIndicatorPeriodError(AlphaVantageBaseException):
             details=details
         )
 
+# Step 5: Risk Metrics Exceptions
+class InvalidVolatilityPeriodError(AlphaVantageBaseException):
+    """Raised when an invalid volatility period is supplied (e.g. <= 0, float, non-digit)."""
+    def __init__(
+        self,
+        message: str = "Volatility period must be a positive integer greater than or equal to 1.",
+        details: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+            error_type="INVALID_PERIOD",
+            details=details
+        )
+
+

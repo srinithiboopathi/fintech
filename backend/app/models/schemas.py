@@ -169,3 +169,34 @@ class IndicatorsResponse(BaseModel):
     summary: IndicatorsSummary
     data: List[IndicatorPoint]
 
+# ----------------------------------------------------------------------
+# Step 5: Returns and Volatility Analysis Schemas
+# ----------------------------------------------------------------------
+
+class RiskMetricPoint(BaseModel):
+    """Normalized data point containing closing price, daily percentage return, and rolling volatility."""
+    timestamp: str = Field(..., description="UTC ISO-8601 formatted timestamp")
+    close: float = Field(..., description="Closing price")
+    return_pct: Optional[float] = Field(None, description="Percentage daily return: ((Close_t / Close_(t-1)) - 1) * 100")
+    volatility: Optional[float] = Field(None, description="Sample standard deviation (ddof=1) of returns in percentage points (not annualized)")
+
+class RiskMetricsSummary(BaseModel):
+    """Statistical summary of return and volatility metrics."""
+    volatility_period: int = Field(..., description="Configured rolling volatility window (observations)")
+    total_records: int = Field(..., description="Total chronological records analyzed")
+    valid_return_count: int = Field(..., description="Count of valid percentage return observations")
+    valid_volatility_count: int = Field(..., description="Count of valid rolling volatility observations")
+    latest_close: Optional[float] = Field(None, description="Most recent closing price in series")
+    latest_return: Optional[float] = Field(None, description="Most recent percentage daily return")
+    latest_volatility: Optional[float] = Field(None, description="Most recent rolling daily volatility (percentage points, not annualized)")
+
+class RiskMetricsResponse(BaseModel):
+    """Complete quantitative returns and volatility response payload."""
+    asset: str
+    symbol: str
+    source: str
+    data_status: str = Field(default="calculated", description="Status of risk metrics computation")
+    summary: RiskMetricsSummary
+    data: List[RiskMetricPoint]
+
+

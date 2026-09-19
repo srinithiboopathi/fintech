@@ -12,10 +12,11 @@ from app.models.schemas import (
     CleanMarketDataResponse,
     DataSummaryResponse,
     IndicatorsResponse,
+    RiskMetricsResponse,
 )
 from app.services.market_data import market_data_service
 from app.services.cache_manager import cache_manager
-from app.utils.exceptions import InvalidIndicatorPeriodError
+from app.utils.exceptions import InvalidIndicatorPeriodError, InvalidVolatilityPeriodError
 
 router = APIRouter()
 
@@ -41,6 +42,30 @@ def validate_indicator_period(val: Any) -> int:
         raise InvalidIndicatorPeriodError()
 
     return period
+
+def validate_volatility_period(val: Any) -> int:
+    """
+    Validates that volatility_period is a positive integer >= 1.
+    Rejects: 0, negative numbers, decimals, non-digit strings, empty values.
+    Raises InvalidVolatilityPeriodError (HTTP 400).
+    """
+    if val is None:
+        raise InvalidVolatilityPeriodError()
+
+    val_str = str(val).strip()
+    if not val_str:
+        raise InvalidVolatilityPeriodError()
+
+    # Reject floats, negative numbers, non-digit characters
+    if not re.fullmatch(r"\d+", val_str):
+        raise InvalidVolatilityPeriodError()
+
+    period = int(val_str)
+    if period < 1:
+        raise InvalidVolatilityPeriodError()
+
+    return period
+
 
 
 @router.get(
@@ -228,4 +253,38 @@ async def get_market_indicators(
         ema_period=valid_ema,
         refresh=refresh or False
     )
+
+@router.get(
+    "/market/{asset}/risk-metrics",
+    response_model=RiskMetricsResponse,
+    summary="Get Quantitative Risk Metrics (Returns & Volatility)",
+    tags=["Risk & Quantitative Metrics"]
+)
+async def get_market_risk_metrics(
+    asset: str = Path(..., description="Asset name or symbol (e.g. 'nvidia', 'bitcoin', 'gold')"),
+    volatility_period: Optional[str] = Query(
+        "20",
+        description="Rolling volatility window in observations (positive integer >= 1, default 20)"
+    ),
+    refresh: Optional[bool] = Query(
+        False,
+        description="Bypass local cache and force fresh data calculation"
+    )
+):
+    """
+    Calculates percentage daily returns and rolling sample volatility (ddof=1)
+    for NVIDIA, Bitcoin, or Gold strictly from Step 3 cleaned historical data.
+
+    Query Parameters:
+    - volatility_period: Positive integer >= 1 (default: 20)
+    - refresh: Optional boolean to force fresh fetch and calculation
+    """
+    valid_vol_period = validate_volatility_period(volatility_period)
+
+    return await market_data_service.get_risk_metrics(
+        asset_identifier=asset,
+        volatility_period=valid_vol_period,
+        refresh=refresh or False
+    )
+
 
