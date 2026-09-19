@@ -64,6 +64,7 @@ def test_dom_sections_and_canvases_present():
         "view-robustness",
         "view-regimes",
         "view-system",
+        "view-ai",
     ]
     for view_id in required_views:
         assert f'id="{view_id}"' in html_content, f"Missing view section: {view_id}"
@@ -89,9 +90,29 @@ def test_dom_sections_and_canvases_present():
         "select-corr-window",
         "backtest-strat-select",
         "robustness-strat-select",
+        "btn-floating-ai",
+        "ai-chat-drawer",
+        "drawer-ai-chat-input",
+        "btn-drawer-ai-send",
+        "btn-drawer-clear-chat",
     ]
     for ctrl_id in required_controls:
         assert f'id="{ctrl_id}"' in html_content, f"Missing interactive control: {ctrl_id}"
+
+
+def test_ai_suggested_prompts_present():
+    """Verify all 6 required jury suggested prompts are present in index.html."""
+    html_content = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
+    required_prompts = [
+        "Analyze NVDA",
+        "Compare Bitcoin and Gold correlation",
+        "Explain NVDA's Sharpe ratio",
+        "How did SMA Crossover perform?",
+        "What is the current market regime?",
+        "Explain the latest drawdown",
+    ]
+    for prompt in required_prompts:
+        assert prompt in html_content, f"Missing required suggested jury question: {prompt}"
 
 
 def test_api_client_route_coverage():
@@ -116,6 +137,8 @@ def test_api_client_route_coverage():
         "/market/${asset}/regimes",
         "/market/${asset}/regimes/summary",
         "/market/${asset}/regimes/performance",
+        "/ai/chat",
+        "/ai/status",
     ]
 
     for route in expected_routes:
@@ -131,6 +154,7 @@ def test_no_hardcoded_secrets_or_keys():
                 # Look for suspicious raw 32-char hex or alphanumeric keys
                 assert "TWELVE_DATA_API_KEY=" not in content
                 assert "ALPHA_VANTAGE_API_KEY=" not in content
+                assert "AI_API_KEY=" not in content
                 assert not re.search(r"['\"][a-f0-9]{32}['\"]", content), f"Suspicious API key in {f}"
 
 

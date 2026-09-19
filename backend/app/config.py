@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     ALPHA_VANTAGE_API_KEY: str = ""
     ALPHA_VANTAGE_BASE_URL: str = "https://www.alphavantage.co/query"
 
+    # AI Assistant Configuration (Step 13)
+    AI_PROVIDER: str = "gemini"  # "gemini" or "openai"
+    AI_API_KEY: str = ""
+    AI_MODEL: str = "gemini-1.5-flash"
+
     # Cache Settings
     CACHE_DIR: Path = DATA_CACHE_DIR
     HISTORICAL_CACHE_TTL_HOURS: int = 24
@@ -56,6 +61,20 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "*"
     ]
+
+    @property
+    def is_ai_configured(self) -> bool:
+        key = self.AI_API_KEY.strip()
+        return bool(key and key.lower() not in ("your_ai_api_key_here", "demo", "none", ""))
+
+    @property
+    def masked_ai_key(self) -> str:
+        key = self.AI_API_KEY.strip()
+        if not self.is_ai_configured:
+            return "NOT_CONFIGURED"
+        if len(key) <= 6:
+            return "******"
+        return f"{'*' * (len(key) - 6)}{key[-6:]}"
 
     @property
     def is_twelve_data_configured(self) -> bool:

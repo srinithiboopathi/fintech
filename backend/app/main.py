@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routes.market import router as market_router
+from app.routes.ai import router as ai_router
 from app.utils.exceptions import AlphaVantageBaseException
 from app.utils.logging import logger
 
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
 
     # Mount Routes
     app.include_router(market_router)
+    app.include_router(ai_router)
 
     @app.get("/", tags=["Root"])
     async def root():
@@ -108,7 +110,9 @@ def create_app() -> FastAPI:
                 "strategy_robustness": "/market/{asset}/strategy/robustness",
                 "market_regimes": "/market/{asset}/regimes",
                 "market_regimes_summary": "/market/{asset}/regimes/summary",
-                "strategy_regimes_performance": "/market/{asset}/regimes/performance"
+                "strategy_regimes_performance": "/market/{asset}/regimes/performance",
+                "ai_chat": "/ai/chat",
+                "ai_status": "/ai/status"
             },
 
 

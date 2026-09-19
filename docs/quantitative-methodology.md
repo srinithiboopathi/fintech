@@ -3,7 +3,7 @@
 This document details the mathematical models, formulas, statistical assumptions, and numerical implementations active in the **Quantexa** analytics platform.
 
 > [!NOTE]
-> This document describes the currently implemented quantitative algorithms (Steps 1–11). Future algorithmic models (such as portfolio allocation and platform UI) are reserved for subsequent steps.
+> This document describes the currently implemented quantitative algorithms and AI grounding architecture (Steps 1–13). Future algorithmic models are reserved for subsequent milestones.
 
 ---
 
@@ -435,5 +435,55 @@ The platform never labels any regime or strategy as "best", "worst", "winner", o
 | **Stationary Returns Only** | Correlation is calculated on daily return series, never on non-stationary raw prices. |
 | **Strict Date Alignment** | Overlapping inner-join on UTC dates; zero forward-filling across market closures. |
 | **Multi-Asset Compatibility** | Uniform mathematical definitions applied across Equities, Cryptocurrencies, and Commodities. |
+| **Zero-Hallucination Grounding** | AI synthesis queries actual quantitative services; never invents metrics, prices, returns, or backtest results. |
+| **Bounded Conversational Memory** | Multi-turn chat session memory bounded to 6 turns, avoiding context bloat and preserving causal topic tracking. |
+
+---
+
+## 12. Grounded AI Financial Intelligence Assistant
+
+### Architecture & Grounding Pipeline
+
+The **Quantexa AI** assistant (`app/services/ai_assistant.py`) operates as a specialized quantitative intelligence agent grounded in the platform's verifiable backend computations:
+
+```
+User Question
+    ↓
+POST /ai/chat
+    ↓
+Entity & Intent Detection (Assets, Strategies, Metrics, Regimes)
+    ↓
+Causal Quantitative Service Retrieval (MarketDataService, RiskMetricsService, etc.)
+    ↓
+Structured Factual Context Assembly
+    ↓
+Server-Side LLM Synthesis (Gemini / OpenAI) or Deterministic Analytical Fallback
+    ↓
+Grounded Response + Exact Data Citations (Data References)
+```
+
+### 1. Intent & Context Routing
+- **Supported Assets**: `NVDA` (NVIDIA), `BTC/USD` (Bitcoin), `XAU/USD` (Gold). Multi-alias normalization handles tickers, full names, and common colloquialisms.
+- **Supported Contexts**:
+  - `market_data`: Cleaned OHLCV, latest price quote, observations count, and timestamps.
+  - `indicators`: SMA (50) and EMA (20) trailing averages.
+  - `risk`: Annualized Sharpe ratio, running peak Maximum Drawdown, peak/trough timestamps, and daily returns.
+  - `correlation`: Multi-asset Pearson correlation matrix and dynamic rolling correlation series.
+  - `strategies`: Mathematical formulations, signal mechanics (`BUY`, `SELL`, `HOLD`), and live signals.
+  - `backtest`: Next-Observation simulation results, compound return, trades count, max drawdown, and Buy & Hold benchmark.
+  - `robustness`: Parameter sensitivity grid across bounded discrete configurations.
+  - `regimes`: Trend classification (`BULLISH`, `BEARISH`, `SIDEWAYS`), volatility state (`HIGH_VOLATILITY`, `LOW_VOLATILITY`), and strategy performance attribution.
+
+### 2. Zero-Hallucination & Numerical Integrity Guarantees
+1. **Source of Truth**: The AI service never recalculates quantitative metrics internally; it delegates 100% of data and calculations to verified backend services.
+2. **Never Invert or Fabricate**: The assistant is strictly prohibited from inventing prices, returns, Sharpe ratios, drawdowns, correlations, trade counts, or regime classifications.
+3. **Explicit Data Unavailability**: When an upstream provider is unconfigured or historical data is insufficient for metric warmup, the assistant explicitly states that the data is unavailable rather than guessing.
+4. **Temporal Context**: All numerical answers include relevant timestamps, dates, or observation counts where useful.
+5. **No Guarantees / Financial Safety**: Historical backtests are explicitly contextualized as backward-looking research and education, distinct from future returns and non-personalized advice.
+
+### 3. Server-Side Provider Resilience
+- Configurable via `AI_PROVIDER`, `AI_API_KEY`, and `AI_MODEL`.
+- Supported providers: Google Gemini (`google-genai` / HTTP REST) and OpenAI (`openai` / HTTP REST).
+- **Graceful Deterministic Fallback**: If `AI_API_KEY` is not configured on the server, the assistant smoothly synthesizes factual analytical reports directly from backend quantitative data references, ensuring 100% test passing and robust standalone operation without external dependencies.
 
 

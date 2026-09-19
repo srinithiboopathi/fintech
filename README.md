@@ -3,8 +3,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2.6+-e92063.svg)](https://docs.pydantic.dev/)
-[![Pytest Tests](https://img.shields.io/badge/tests-197%20passed-success.svg)](#testing-instructions)
-[![Status](https://img.shields.io/badge/Milestone-Step%2012%20Complete-emerald.svg)](#current-project-status)
+[![Pytest Tests](https://img.shields.io/badge/tests-223%20passed-success.svg)](#testing-instructions)
+[![Status](https://img.shields.io/badge/Milestone-Step%2013%20Complete-emerald.svg)](#current-project-status)
 
 ---
 
@@ -102,6 +102,9 @@ Evaluates parameter stability across discrete, user-bounded candidate grids (e.g
 
 ### Market Regime Analysis & Attribution
 Classifies historical market observations into deterministic trend states (`BULLISH`, `BEARISH`, `SIDEWAYS`), volatility states (`HIGH_VOLATILITY`, `LOW_VOLATILITY` via causal expanding median or fixed threshold), and combined macroeconomic regimes (e.g. `BULLISH_LOW_VOL`, `BEARISH_HIGH_VOL`). Evaluates factual strategy returns and maximum drawdown attributed across regimes without subjective ranking or classification bias.
+
+### Grounded AI Financial Intelligence Assistant
+Synthesizes natural-language financial queries by retrieving verified quantitative data directly from backend analytical engines (`MarketDataService`, `RiskMetricsService`, `IndicatorService`, etc.). Operates under strict zero-hallucination constraints: all numerical responses cite actual platform calculations, prices, Sharpe ratios, drawdowns, and correlations; missing data is explicitly stated; historical results are clearly differentiated from future expectations; and responses include structured context citation tags.
 
 ---
 
@@ -245,6 +248,11 @@ ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
 # Cache Settings
 HISTORICAL_CACHE_TTL_HOURS=24
 LATEST_CACHE_TTL_SECONDS=60
+
+# AI Provider Configuration (Optional)
+AI_PROVIDER=gemini
+AI_API_KEY=your_gemini_api_key_here
+AI_MODEL=gemini-1.5-pro
 ```
 
 > [!TIP]
@@ -276,6 +284,8 @@ LATEST_CACHE_TTL_SECONDS=60
 | `GET` | `/market/{asset}/regimes` | `trend_period`, `volatility_period`, `volatility_threshold`, `refresh` | Chronological market regime classifications (trend, volatility, combined) |
 | `GET` | `/market/{asset}/regimes/summary` | `trend_period`, `volatility_period`, `volatility_threshold`, `refresh` | Distribution summary of regime observation counts and percentages |
 | `GET` | `/market/{asset}/regimes/performance` | `trend_period`, `volatility_period`, `volatility_threshold`, `refresh` | Factual strategy attribution and return/drawdown across detected regimes |
+| `POST` | `/ai/chat` | — | Grounded AI quantitative chat answering multi-asset queries with platform data |
+| `GET` | `/ai/status` | — | AI assistant status, active provider, masked credentials, and session metrics |
 
 For complete schemas and examples, see [`docs/api.md`](docs/api.md).
 
@@ -303,9 +313,10 @@ pytest backend/tests -v
 - `backend/tests/test_strategies.py` — SMA Crossover, EMA Trend, Momentum, Mean Reversion, Signals & Backtest APIs (40 tests)
 - `backend/tests/test_strategy_comparison.py` — Multi-strategy comparison, parameter combinations, look-ahead protection, bounds validation (20 tests)
 - `backend/tests/test_market_regimes.py` — Trend/volatility regimes, expanding median threshold, look-ahead protection, regime performance attribution (20 tests)
-- `backend/tests/test_frontend.py` — Static assets, DOM elements, API client bindings, zero secrets, zero mock data (7 tests)
+- `backend/tests/test_frontend.py` — Static assets, DOM elements, API client bindings, AI studio, suggested prompts, zero secrets, zero mock data (8 tests)
+- `backend/tests/test_ai_assistant.py` — Grounded AI assistant, entity extraction, context routing, no-hallucination protection, session memory, timeout/fallback (25 tests)
 
-**Total: 197 automated tests (100% passing)**.
+**Total: 223 automated tests (100% passing)**.
 
 ---
 
@@ -326,7 +337,8 @@ pytest backend/tests -v
 | **Step 10: Strategy Comparison & Robustness** | **COMPLETE** | Multi-strategy comparative execution & bounded parameter sensitivity analysis |
 | **Step 11: Market Regime Analysis** | **COMPLETE** | Trend/volatility regime detection, expanding median threshold, strategy performance attribution |
 | **Step 12: Financial Intelligence Dashboard** | **COMPLETE** | High-end interactive web dashboard with 11 views, real API integration, Chart.js analytics |
-| **Step 13+: Advanced Platform Enhancements** | **NOT STARTED** | Reserved for subsequent milestone |
+| **Step 13: Grounded AI Assistant** | **COMPLETE** | Real quantitative AI assistant, intent router, no-hallucination rules, studio & drawer UI |
+| **Step 14+: Advanced Platform Enhancements** | **NOT STARTED** | Reserved for subsequent milestone |
 
 
 ---

@@ -210,6 +210,24 @@ class QuantexaApiClient {
     }
     return this._request(url, { skipCache: refresh });
   }
+
+  // Grounded AI Financial Intelligence Assistant
+  async postChatMessage(message, asset = null, conversationId = null) {
+    const payload = {
+      message: (message || '').trim(),
+      asset: asset || undefined,
+      conversation_id: conversationId || undefined
+    };
+    return this._request('/ai/chat', {
+      method: 'POST',
+      body: payload,
+      skipCache: true
+    });
+  }
+
+  async getAIStatus() {
+    return this._request('/ai/status', { skipCache: true });
+  }
 }
 
 // Global singleton instance

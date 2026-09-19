@@ -701,6 +701,47 @@ class StrategyRegimePerformanceResponse(BaseModel):
     performances: List[StrategyRegimePerformanceItem] = Field(..., description="Performance per strategy and regime")
 
 
+# ==============================================================================
+# Step 13: AI Financial Intelligence Chatbot Models
+# ==============================================================================
+
+class AIChatRequest(BaseModel):
+    """Request payload for interacting with the AI Financial Intelligence Assistant."""
+    message: str = Field(..., min_length=1, max_length=1000, description="User question or financial analysis prompt")
+    asset: Optional[str] = Field(None, description="Optional target asset filter ('nvidia', 'bitcoin', 'gold')")
+    conversation_id: Optional[str] = Field(None, description="Optional conversation session ID for multi-turn context")
+
+
+class AIDataReference(BaseModel):
+    """Factual quantitative platform data point supplied to ground the AI response."""
+    topic: str = Field(..., description="Analytical topic: 'market_data', 'indicators', 'risk', 'correlation', 'strategy', 'backtest', 'robustness', 'regime'")
+    asset: Optional[str] = Field(None, description="Related asset name or symbol")
+    timestamp: Optional[str] = Field(None, description="Observation or calculation timestamp")
+    summary: Dict[str, Any] = Field(default_factory=dict, description="Key factual figures extracted from authoritative services")
+
+
+class AIChatResponse(BaseModel):
+    """Grounded AI Financial Intelligence response."""
+    conversation_id: str = Field(..., description="Unique conversation session identifier")
+    answer: str = Field(..., description="Grounded, factual analysis synthesized from platform data")
+    relevant_assets: List[str] = Field(default_factory=list, description="Assets detected and used in the analysis")
+    relevant_metrics: List[str] = Field(default_factory=list, description="Quantitative topics and metrics referenced")
+    data_references: List[AIDataReference] = Field(default_factory=list, description="Factual platform citations and metric snapshots")
+    timestamp: str = Field(..., description="ISO-8601 UTC timestamp of response generation")
+    provider: str = Field(..., description="Configured LLM provider identifier ('gemini', 'openai', or 'system')")
+    model: str = Field(..., description="Model identifier used for generation")
+
+
+class AIStatusResponse(BaseModel):
+    """Health and configuration status of the AI Assistant."""
+    status: str = Field(..., description="'ready' or 'unconfigured'")
+    provider: str = Field(..., description="Configured provider identifier")
+    model: str = Field(..., description="Active model identifier")
+    is_configured: bool = Field(..., description="True if a valid AI API key is configured on the server")
+    masked_key: str = Field(..., description="Masked representation of the AI API key (zero secrets exposed)")
+
+
+
 
 
 

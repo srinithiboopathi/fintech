@@ -32,6 +32,9 @@ class QuantexaApp {
     this.activeView = 'overview';
     this.api = window.quantexaApi;
     this.charts = window.quantexaCharts;
+    this.conversationId = null;
+    this.isAiSending = false;
+    this.lastUserMessage = '';
     this.state = {
       overviewData: null,
       marketData: null,
@@ -72,6 +75,77 @@ class QuantexaApp {
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => this.refreshAll());
     }
+
+    // AI Chat Launcher & Drawer Triggers
+    const floatingAiBtn = document.getElementById('btn-floating-ai');
+    if (floatingAiBtn) {
+      floatingAiBtn.addEventListener('click', () => this.openAiChat());
+    }
+
+    const topbarAiBtn = document.getElementById('btn-topbar-ai');
+    if (topbarAiBtn) {
+      topbarAiBtn.addEventListener('click', () => this.openAiChat());
+    }
+
+    const closeAiBtn = document.getElementById('btn-close-ai-drawer');
+    const aiDrawerOverlay = document.getElementById('ai-drawer-overlay');
+    if (closeAiBtn) {
+      closeAiBtn.addEventListener('click', () => this.closeAiChat());
+    }
+    if (aiDrawerOverlay) {
+      aiDrawerOverlay.addEventListener('click', () => this.closeAiChat());
+    }
+
+    const drawerClearBtn = document.getElementById('btn-drawer-clear-chat');
+    if (drawerClearBtn) {
+      drawerClearBtn.addEventListener('click', () => this.clearChat());
+    }
+
+    // Drawer Form Send
+    const drawerSendBtn = document.getElementById('btn-drawer-ai-send') || document.getElementById('btn-ai-send');
+    const drawerInput = document.getElementById('drawer-ai-chat-input') || document.getElementById('ai-chat-input');
+    if (drawerSendBtn && drawerInput) {
+      drawerSendBtn.addEventListener('click', () => {
+        this.sendChatMessage(drawerInput.value, 'drawer');
+      });
+      drawerInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.sendChatMessage(drawerInput.value, 'drawer');
+        }
+      });
+    }
+
+    // Page Studio Form Send
+    const pageSendBtn = document.getElementById('btn-page-ai-send');
+    const pageInput = document.getElementById('page-ai-chat-input');
+    if (pageSendBtn && pageInput) {
+      pageSendBtn.addEventListener('click', () => {
+        this.sendChatMessage(pageInput.value, 'page');
+      });
+      pageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.sendChatMessage(pageInput.value, 'page');
+        }
+      });
+    }
+
+    // Suggested Prompt Chips
+    document.querySelectorAll('.suggested-prompt-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        const prompt = e.currentTarget.dataset.prompt || e.currentTarget.textContent.trim();
+        if (prompt) {
+          const drawer = document.getElementById('ai-chat-drawer');
+          const isDrawerOpen = drawer && !drawer.classList.contains('translate-x-full');
+          if (this.activeView !== 'ai' && !isDrawerOpen) {
+            this.openAiChat(prompt);
+          } else {
+            this.sendChatMessage(prompt, this.activeView === 'ai' ? 'page' : 'drawer');
+          }
+        }
+      });
+    });
 
     // Mobile Menu Toggle
     const mobileMenuBtn = document.getElementById('btn-mobile-menu');
@@ -881,6 +955,225 @@ class QuantexaApp {
     `;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
+  }
+
+  // ==========================================================================
+  // QUANTEXA AI Chatbot Engine
+  // ==========================================================================
+  openAiChat(initialMessage = null) {
+    const drawer = document.getElementById('ai-chat-drawer');
+    const overlay = document.getElementById('ai-drawer-overlay');
+    if (drawer && overlay) {
+      drawer.classList.remove('translate-x-full');
+      drawer.classList.add('translate-x-0');
+      overlay.classList.remove('hidden');
+    }
+    const input = document.getElementById('drawer-ai-chat-input') || document.getElementById('ai-chat-input');
+    if (initialMessage && input) {
+      input.value = initialMessage;
+      this.sendChatMessage(initialMessage, 'drawer');
+    } else if (input) {
+      input.focus();
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  closeAiChat() {
+    const drawer = document.getElementById('ai-chat-drawer');
+    const overlay = document.getElementById('ai-drawer-overlay');
+    if (drawer && overlay) {
+      drawer.classList.remove('translate-x-0');
+      drawer.classList.add('translate-x-full');
+      overlay.classList.add('hidden');
+    }
+  }
+
+  clearChat() {
+    this.conversationId = null;
+    const containers = [
+      document.getElementById('drawer-ai-messages-container'),
+      document.getElementById('page-ai-messages-container')
+    ];
+    const welcomeHtml = `
+      <div class="flex items-start gap-3 animate-fade-in">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-pink-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-md">
+          <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+        </div>
+        <div class="chat-bubble-bot p-4 text-xs space-y-2 max-w-[85%]">
+          <div class="font-bold text-white flex items-center gap-2">
+            QUANTEXA Grounded Financial Intelligence
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">Zero Hallucination</span>
+          </div>
+          <p class="text-slate-300 leading-relaxed">
+            Conversation history cleared. All inquiries are mathematically grounded in platform quantitative calculations.
+          </p>
+          <p class="text-slate-400 text-[11px]">
+            Ask a new question or select any suggested prompt above.
+          </p>
+        </div>
+      </div>
+    `;
+    containers.forEach(c => {
+      if (c) c.innerHTML = welcomeHtml;
+    });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    this.showToast('Conversation Cleared', 'Active AI session memory reset.');
+  }
+
+  async sendChatMessage(message, source = 'drawer') {
+    if (!message || !message.trim() || this.isAiSending) return;
+    const cleanMsg = message.trim();
+    this.lastUserMessage = cleanMsg;
+    this.isAiSending = true;
+
+    // Clear inputs
+    const drawerInput = document.getElementById('drawer-ai-chat-input');
+    const pageInput = document.getElementById('page-ai-chat-input');
+    if (drawerInput) drawerInput.value = '';
+    if (pageInput) pageInput.value = '';
+
+    // Render user message bubble in both containers
+    this._appendChatBubble('user', cleanMsg);
+
+    // Show typing indicators
+    const drawerTyping = document.getElementById('drawer-ai-typing-indicator');
+    const pageTyping = document.getElementById('page-ai-typing-indicator');
+    if (drawerTyping) drawerTyping.classList.remove('hidden');
+    if (pageTyping) pageTyping.classList.remove('hidden');
+
+    this._scrollChatToBottom();
+
+    try {
+      const resp = await this.api.postChatMessage(cleanMsg, this.activeAsset, this.conversationId);
+      if (resp && resp.conversation_id) {
+        this.conversationId = resp.conversation_id;
+      }
+      this._appendChatBubble('bot', resp.answer, resp.data_references, resp.timestamp);
+    } catch (err) {
+      console.error('AI chat error:', err);
+      this._appendChatBubble('error', err.message || 'Error communicating with AI assistant.', null, null, true);
+    } finally {
+      this.isAiSending = false;
+      if (drawerTyping) drawerTyping.classList.add('hidden');
+      if (pageTyping) pageTyping.classList.add('hidden');
+      this._scrollChatToBottom();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+  }
+
+  _appendChatBubble(type, content, dataReferences = null, timestamp = null, canRetry = false) {
+    const containers = [
+      document.getElementById('drawer-ai-messages-container'),
+      document.getElementById('page-ai-messages-container')
+    ];
+
+    containers.forEach(container => {
+      if (!container) return;
+
+      const bubbleWrapper = document.createElement('div');
+      bubbleWrapper.className = 'flex items-start gap-3 animate-fade-in';
+
+      if (type === 'user') {
+        bubbleWrapper.className = 'flex items-start justify-end gap-3 animate-fade-in';
+        bubbleWrapper.innerHTML = `
+          <div class="chat-bubble-user p-3.5 text-xs max-w-[85%] leading-relaxed font-sans shadow-md">
+            ${this._escapeHtml(content)}
+          </div>
+          <div class="w-7 h-7 rounded-lg bg-indigo-700/60 border border-indigo-500/40 flex items-center justify-center shrink-0 text-white text-[11px] font-bold">
+            U
+          </div>
+        `;
+      } else if (type === 'bot') {
+        let refsHtml = '';
+        if (dataReferences && dataReferences.length > 0) {
+          const pills = dataReferences.map(r => {
+            const timePart = r.timestamp ? ` &bull; ${r.timestamp.split('T')[0]}` : '';
+            return `<span class="data-reference-pill"><i data-lucide="database" class="w-3 h-3 text-indigo-400"></i> ${r.topic.toUpperCase()} (${r.asset || 'PLATFORM'}${timePart})</span>`;
+          }).join(' ');
+          refsHtml = `
+            <div class="pt-2 border-t border-slate-700/60 mt-2 space-y-1">
+              <div class="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-400"></i> Grounded Platform References:
+              </div>
+              <div class="flex flex-wrap gap-1.5 pt-0.5">
+                ${pills}
+              </div>
+            </div>
+          `;
+        }
+
+        bubbleWrapper.innerHTML = `
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-pink-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-md">
+            <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+          </div>
+          <div class="chat-bubble-bot p-4 text-xs space-y-2 max-w-[88%] leading-relaxed">
+            <div class="prose prose-invert max-w-none text-slate-200">
+              ${this._formatMarkdown(content)}
+            </div>
+            ${refsHtml}
+            ${timestamp ? `<div class="text-[10px] text-slate-500 font-mono text-right pt-1">${new Date(timestamp).toLocaleTimeString()} UTC</div>` : ''}
+          </div>
+        `;
+      } else if (type === 'error') {
+        bubbleWrapper.innerHTML = `
+          <div class="w-7 h-7 rounded-lg bg-rose-600/80 flex items-center justify-center shrink-0 shadow-md">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-white"></i>
+          </div>
+          <div class="chat-bubble-bot p-4 text-xs space-y-2 max-w-[88%] border-rose-500/40 bg-rose-950/20 text-rose-200">
+            <div class="font-bold flex items-center gap-2 text-rose-300">
+              <i data-lucide="alert-circle" class="w-4 h-4"></i> Communication Notice
+            </div>
+            <p>${this._escapeHtml(content)}</p>
+            ${canRetry ? `
+              <button onclick="window.quantexaApp.retryLastMessage()" class="mt-2 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-semibold flex items-center gap-1.5 transition-all">
+                <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Retry Inquiry
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      container.appendChild(bubbleWrapper);
+    });
+  }
+
+  retryLastMessage() {
+    if (this.lastUserMessage) {
+      this.sendChatMessage(this.lastUserMessage);
+    }
+  }
+
+  _scrollChatToBottom() {
+    ['drawer-ai-messages-container', 'page-ai-messages-container'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+  }
+
+  _escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  _formatMarkdown(text) {
+    if (!text) return '';
+    let formatted = this._escapeHtml(text);
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em class="text-slate-300">$1</em>');
+    formatted = formatted.replace(/^&gt;\s?(.*)$/gm, '<blockquote class="border-l-2 border-indigo-500 pl-2 text-slate-400 italic text-[11px] my-1">$1</blockquote>');
+    formatted = formatted.replace(/^•\s?(.*)$/gm, '<div class="flex items-start gap-1.5 my-0.5"><span class="text-indigo-400 font-bold">•</span><span>$1</span></div>');
+    formatted = formatted.replace(/^\s+-\s?(.*)$/gm, '<div class="flex items-start gap-1.5 ml-3 my-0.5"><span class="text-slate-500">-</span><span>$1</span></div>');
+    formatted = formatted.replace(/`([^`]+)`/g, '<code class="font-mono px-1 py-0.5 rounded bg-slate-800 text-indigo-300 text-[11px]">$1</code>');
+    formatted = formatted.replace(/\n\n/g, '<div class="h-2"></div>');
+    formatted = formatted.replace(/\n/g, '<br>');
+    return formatted;
   }
 }
 

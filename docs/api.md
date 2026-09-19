@@ -22,6 +22,8 @@ Base URL: `http://127.0.0.1:8000`
 | `GET` | [`/market/correlation`](#10-multi-asset-pearson-correlation-matrix) | Pairwise symmetric Pearson correlation matrix across multi-asset returns |
 | `GET` | [`/market/correlation/rolling`](#11-rolling-pearson-correlation) | Configurable rolling Pearson correlation time series across asset pairs |
 | `POST` | [`/market/{asset}/backtest`](#12-strategy-agnostic-portfolio-backtesting) | Generic historical portfolio simulation with Next-Observation execution |
+| `POST` | [`/ai/chat`](#21-grounded-ai-financial-intelligence-chat) | Grounded AI chatbot answering quantitative queries with live platform context |
+| `GET` | [`/ai/status`](#22-ai-assistant-provider-status) | Current AI service status, provider configuration, and masked API credentials |
 
 ---
 
@@ -1160,6 +1162,71 @@ Serves the **Quantexa** financial intelligence dashboard single-page web applica
 
 #### Response: `200 OK`
 Content-Type: `text/html; charset=utf-8`
+
+---
+
+## 21. Grounded AI Financial Intelligence Chat
+
+### `POST /ai/chat`
+
+Processes natural-language financial queries, routes to existing quantitative services for factual data retrieval, and generates numerically grounded responses via server-side LLMs (Gemini / OpenAI) or built-in factual analytical synthesis.
+
+#### Request Body (`application/json`)
+```json
+{
+  "message": "What is NVDA's Sharpe ratio?",
+  "asset": "NVDA",
+  "conversation_id": "c7a8b9d0-1234-5678-9abc-def012345678"
+}
+```
+
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `message` | `string` | **Yes** | Natural-language financial or quantitative question (min length: 1, max length: 1000). |
+| `asset` | `string` | No | Optional asset hint (`NVDA`, `BTC/USD`, `XAU/USD`). If omitted, detected automatically from message text. |
+| `conversation_id` | `string` | No | Bounded conversation session ID for multi-turn conversational memory (retains up to 6 turns). |
+
+#### Response: `200 OK`
+```json
+{
+  "conversation_id": "c7a8b9d0-1234-5678-9abc-def012345678",
+  "answer": "According to Quantexa's risk analysis model, NVIDIA (NVDA) has an annualized Sharpe ratio of 1.8421 (evaluated against a 2.0% risk-free rate) with a maximum drawdown of -12.45% occurring on 2024-08-05. Note that historical risk metrics are backward-looking and do not guarantee future returns.",
+  "relevant_assets": ["NVDA"],
+  "relevant_contexts": ["risk", "market_data"],
+  "timestamp": "2026-09-19T18:00:00Z",
+  "model": "quantexa-grounded-analytics",
+  "data_references": [
+    {
+      "source": "Risk Analysis",
+      "asset": "NVDA",
+      "details": "Sharpe: 1.8421 | Max Drawdown: -12.45% (2024-08-05)",
+      "observation_count": 252,
+      "timestamp": "2026-09-19T00:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## 22. AI Assistant Provider Status
+
+### `GET /ai/status`
+
+Returns the operational state of the server-side AI provider integration, configured model family, masked API key status, and conversation memory metrics.
+
+#### Response: `200 OK`
+```json
+{
+  "configured": true,
+  "provider": "gemini",
+  "model": "gemini-1.5-pro",
+  "masked_api_key": "************A1b2",
+  "active_conversations": 3,
+  "max_history_turns": 6,
+  "timestamp": "2026-09-19T18:00:00Z"
+}
+```
 
 ---
 
