@@ -1,16 +1,33 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, List
-from app.data.providers.csv_provider import CSVMarketProvider
+from sqlalchemy.orm import Session
+from app.database.connection import get_db
+from app.database.repositories import AssetRepository, MarketPriceRepository
 from app.analysis.market_regimes import MarketRegimeClassifier
 
 router = APIRouter(prefix="/regimes", tags=["Market Regimes"])
-provider = CSVMarketProvider()
 
 @router.get("/detect/{symbol}")
-def detect_regimes(symbol: str) -> Dict[str, Any]:
-    bars = provider.get_historical_bars(symbol)
-    if not bars:
+def detect_regimes(symbol: str, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    asset = AssetRepository.get_by_symbol(db, symbol)
+    if not asset:
         raise HTTPException(status_code=404, detail=f"No data for symbol '{symbol}'.")
+
+    prices = MarketPriceRepository.get_prices_for_asset(db, asset.id)
+    if not prices:
+        raise HTTPException(status_code=404, detail=f"No data for symbol '{symbol}'.")
+
+    bars = [
+        {
+            "date": p.date,
+            "close": p.close,
+            "open": p.open,
+            "high": p.high,
+            "low": p.low,
+            "volume": p.volume
+        }
+        for p in prices
+    ]
 
     series_regimes = MarketRegimeClassifier.classify_series(bars)
     
@@ -26,7 +43,7 @@ def detect_regimes(symbol: str) -> Dict[str, Any]:
     current_regime = series_regimes[-1] if series_regimes else {}
 
     return {
-        "symbol": symbol.upper(),
+        "symbol": asset.symbol,
         "current_regime": current_regime,
         "distribution_pct": distribution,
         "series": series_regimes[-60:] # last 60 days
