@@ -3,7 +3,7 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { TradeTable } from '../components/backtest/TradeTable';
 import { MetricCard } from '../components/market/MetricCard';
 import { useBacktest } from '../hooks/useBacktest';
-import { formatCurrency, formatPercent } from '../../utils/formatters';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 import { Award, TrendingDown, Clock, Hash } from 'lucide-react';
 
 export const TradeHistory: React.FC = () => {

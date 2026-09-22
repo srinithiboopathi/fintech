@@ -200,3 +200,62 @@ export interface RegimeDetectionResponse {
   distribution_pct: Record<string, number>;
   series: RegimePoint[];
 }
+
+export interface ResearchReportResponse {
+  report_id: string;
+  symbol: string;
+  date_range: {
+    start_date: string;
+    end_date: string;
+    total_bars: number;
+  };
+  price_summary: {
+    latest_close: number;
+    period_high: number;
+    period_low: number;
+    total_volume: number;
+  };
+  performance_metrics: {
+    total_cumulative_return_pct: number;
+    cagr_pct: number;
+    annualized_volatility_pct: number;
+    downside_volatility_pct: number;
+    sharpe_ratio: number;
+    sortino_ratio: number;
+    calmar_ratio: number;
+    max_drawdown_pct: number;
+    max_drawdown_duration_days: number;
+    var_95_pct: number;
+    cvar_95_pct: number;
+  };
+  correlation_profile: Record<string, number>;
+  current_market_regime: string;
+  baseline_backtest: {
+    strategy: string;
+    total_return_pct: number;
+    sharpe_ratio: number;
+    max_drawdown_pct: number;
+    total_trades: number;
+    benchmark_return_pct: number;
+    alpha_excess_return_pct: number;
+  };
+  generated_at: string;
+}
+
+export interface SensitivityResultItem {
+  parameters: Record<string, any>;
+  commission_bps: number;
+  total_return_pct: number;
+  sharpe_ratio: number;
+  max_drawdown_pct: number;
+  total_trades: number;
+  profit_factor: number;
+}
+
+export interface SensitivityResponse {
+  symbol: string;
+  strategy_id: string;
+  total_permutations: number;
+  results: SensitivityResultItem[];
+}
+

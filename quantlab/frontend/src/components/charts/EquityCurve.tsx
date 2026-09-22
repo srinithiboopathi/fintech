@@ -66,7 +66,7 @@ export const EquityCurve: React.FC<EquityCurveProps> = ({
             <span className="w-2.5 h-0.5 bg-emerald-400" /> Strategy
           </div>
           <div className="flex items-center gap-1.5 text-cyan-400">
-            <span className="w-2.5 h-0.5 bg-cyan-400" strokeDasharray="2 2" /> Benchmark
+            <span className="w-2.5 h-0.5 bg-cyan-400" /> Benchmark
           </div>
         </div>
       </div>

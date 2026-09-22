@@ -1,5 +1,12 @@
 import { apiClient } from './api';
-import { IndicatorData, RiskMetrics, RegimeDetectionResponse, MonteCarloResult } from '../types';
+import {
+  IndicatorData,
+  RiskMetrics,
+  RegimeDetectionResponse,
+  MonteCarloResult,
+  ResearchReportResponse,
+  SensitivityResponse,
+} from '../types';
 
 export const AnalyticsApi = {
   async getIndicators(symbol: string): Promise<IndicatorData> {
@@ -133,4 +140,19 @@ export const AnalyticsApi = {
       };
     }
   },
+
+  async getResearchReport(symbol: string, startDate?: string, endDate?: string): Promise<ResearchReportResponse> {
+    const res = await apiClient.get<ResearchReportResponse>(`/reports/generate/${symbol}`, {
+      params: { start_date: startDate, end_date: endDate },
+    });
+    return res.data;
+  },
+
+  async getParameterSensitivity(symbol: string, strategyId: string = 'sma_crossover'): Promise<SensitivityResponse> {
+    const res = await apiClient.get<SensitivityResponse>(`/robustness/sensitivity/${symbol}`, {
+      params: { strategy_id: strategyId },
+    });
+    return res.data;
+  },
 };
+

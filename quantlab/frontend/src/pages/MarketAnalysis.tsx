@@ -8,7 +8,7 @@ import { Card } from '../components/ui/Card';
 import { useMarketData } from '../hooks/useMarketData';
 import { AnalyticsApi } from '../services/analyticsApi';
 import { RiskMetrics, IndicatorData } from '../types';
-import { formatPercent, formatNumber } from '../../utils/formatters';
+import { formatPercent, formatNumber } from '../utils/formatters';
 import { Activity, ShieldCheck, TrendingUp, AlertTriangle } from 'lucide-react';
 
 export const MarketAnalysis: React.FC = () => {

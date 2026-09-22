@@ -4,28 +4,39 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { AnalyticsApi } from '../services/analyticsApi';
-import { MonteCarloResult } from '../types';
-import { formatCurrency, formatPercent } from '../../utils/formatters';
-import { ShieldAlert, Play, RefreshCw, BarChart2, Award } from 'lucide-react';
+import { MonteCarloResult, SensitivityResponse } from '../types';
+import { formatCurrency, formatPercent } from '../utils/formatters';
+import { ShieldAlert, Play, RefreshCw, BarChart2, Award, Sliders } from 'lucide-react';
 
 export const RobustnessLab: React.FC = () => {
   const [symbol, setSymbol] = useState('NVDA');
+  const [strategyId, setStrategyId] = useState('sma_crossover');
   const [simulations, setSimulations] = useState(300);
   const [horizon, setHorizon] = useState(252);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MonteCarloResult | null>(null);
+  const [sensitivity, setSensitivity] = useState<SensitivityResponse | null>(null);
 
   const runSimulation = () => {
     setLoading(true);
-    AnalyticsApi.getMonteCarlo(symbol, simulations, horizon).then((res) => {
-      setResult(res);
-      setLoading(false);
-    });
+    Promise.all([
+      AnalyticsApi.getMonteCarlo(symbol, simulations, horizon),
+      AnalyticsApi.getParameterSensitivity(symbol, strategyId),
+    ])
+      .then(([mcRes, sensRes]) => {
+        setResult(mcRes);
+        setSensitivity(sensRes);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to run robustness tests:', err);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
     runSimulation();
-  }, [symbol]);
+  }, [symbol, strategyId]);
 
   const totalWidth = 800;
   const height = 300;
@@ -54,9 +65,9 @@ export const RobustnessLab: React.FC = () => {
   return (
     <PageContainer
       title="Monte Carlo & Robustness Lab"
-      subtitle="Statistical stress-testing, bootstrap resampling, and confidence interval estimation"
+      subtitle="Statistical stress-testing, bootstrap resampling, and parameter sensitivity stability"
       actions={
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Select
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
@@ -64,6 +75,16 @@ export const RobustnessLab: React.FC = () => {
               { value: 'NVDA', label: 'NVIDIA (NVDA)' },
               { value: 'BTC-USD', label: 'Bitcoin (BTC)' },
               { value: 'GC=F', label: 'Gold (GC=F)' },
+            ]}
+          />
+          <Select
+            value={strategyId}
+            onChange={(e) => setStrategyId(e.target.value)}
+            options={[
+              { value: 'sma_crossover', label: 'Dual SMA Golden Cross' },
+              { value: 'ema_trend', label: 'Triple EMA Trend Ribbon' },
+              { value: 'momentum', label: 'Momentum Breakout' },
+              { value: 'mean_reversion', label: 'Bollinger Mean Reversion' },
             ]}
           />
           <Button
@@ -168,7 +189,59 @@ export const RobustnessLab: React.FC = () => {
             </svg>
           </div>
         </Card>
+
+        {/* Parameter Sensitivity Grid */}
+        {sensitivity?.results && sensitivity.results.length > 0 && (
+          <Card variant="glass" className="p-5 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-sm font-bold text-slate-100 font-mono">
+                  Parameter Sensitivity & Friction Stability Grid ({sensitivity.total_permutations} Permutations)
+                </h3>
+              </div>
+              <span className="text-xs font-mono text-slate-400">
+                Strategy: {strategyId} | Asset: {symbol}
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-mono">
+                <thead className="bg-slate-900 text-slate-400">
+                  <tr>
+                    <th className="p-2.5 text-left">Parameters</th>
+                    <th className="p-2.5 text-right">Commission (bps)</th>
+                    <th className="p-2.5 text-right">Return</th>
+                    <th className="p-2.5 text-right">Sharpe</th>
+                    <th className="p-2.5 text-right">Max DD</th>
+                    <th className="p-2.5 text-right">Trades</th>
+                    <th className="p-2.5 text-right">Profit Factor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {sensitivity.results.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-800/30">
+                      <td className="p-2.5 text-slate-300">
+                        {Object.entries(item.parameters)
+                          .map(([k, v]) => `${k}=${v}`)
+                          .join(', ')}
+                      </td>
+                      <td className="p-2.5 text-right text-slate-400">{item.commission_bps} bps</td>
+                      <td className={`p-2.5 text-right font-bold ${item.total_return_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {item.total_return_pct >= 0 ? '+' : ''}{item.total_return_pct.toFixed(2)}%
+                      </td>
+                      <td className="p-2.5 text-right text-cyan-400 font-semibold">{item.sharpe_ratio.toFixed(2)}</td>
+                      <td className="p-2.5 text-right text-rose-400">-{item.max_drawdown_pct.toFixed(2)}%</td>
+                      <td className="p-2.5 text-right text-slate-300">{item.total_trades}</td>
+                      <td className="p-2.5 text-right text-slate-200">{item.profit_factor.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
       </div>
     </PageContainer>
   );
 };
+

@@ -4,7 +4,7 @@ import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
 import { AnalyticsApi } from '../services/analyticsApi';
 import { RegimeDetectionResponse } from '../types';
-import { getRegimeBadgeColor } from '../../utils/colors';
+import { getRegimeBadgeColor } from '../utils/colors';
 import { Gauge, Sparkles, Activity, ShieldAlert, BarChart } from 'lucide-react';
 
 export const MarketRegimes: React.FC = () => {
